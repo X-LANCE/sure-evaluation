@@ -239,6 +239,7 @@ def test_rir_metrics_accept_reference_npy_in_channel_first_layout(tmp_path: Path
 
 def test_rir_minimal_examples_cover_every_registered_metric(tmp_path: Path) -> None:
     acoustic_metrics = ("rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae")
+    iso_metrics = ("rir_edt_m_mae", "rir_edt_broadband_mae", "rir_edt_jnd_mae", "rir_c80_jnd_mae", "rir_d50_jnd_mae", "rir_ts_jnd_mae")
     mono_reference = tmp_path / "mono_reference.wav"
     mono_prediction = tmp_path / "mono_prediction.wav"
     mono_reference_stereo = tmp_path / "mono_reference_stereo.wav"
@@ -278,7 +279,7 @@ def test_rir_minimal_examples_cover_every_registered_metric(tmp_path: Path) -> N
         sample_id="minimal-four-channel", sample_rate=16000, channel_layout="multi_channel",
         metadata={"microphone_spacing_m": 0.08},
     )
-    mono_report = evaluate_rir_samples([mono], metrics=acoustic_metrics, channel_mode="single")
+    mono_report = evaluate_rir_samples([mono], metrics=acoustic_metrics + iso_metrics, channel_mode="single")
     binaural_report = evaluate_rir_samples(
         [binaural], metrics=acoustic_metrics + ("rir_iacc_mae", "rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"), channel_mode="binaural"
     )
@@ -529,6 +530,12 @@ def test_rir_nodes_are_in_process_environment_checks() -> None:
         "rir_c50_mae",
         "rir_c80_mae",
         "rir_edc_mae",
+        "rir_edt_m_mae",
+        "rir_edt_broadband_mae",
+        "rir_edt_jnd_mae",
+        "rir_c80_jnd_mae",
+        "rir_d50_jnd_mae",
+        "rir_ts_jnd_mae",
         "rir_iacc_mae",
         "rir_iacc_full_mae",
         "rir_iacc_early_mae",
@@ -542,6 +549,52 @@ def test_rir_nodes_are_in_process_environment_checks() -> None:
         assert result.status == "ok"
         assert result.runtime == "in_process"
         assert result.required is False
+
+
+@pytest.mark.parametrize("channels", (1, 2, 4))
+def test_rir_iso3382_metrics_cover_mono_binaural_and_multichannel(tmp_path: Path, channels: int) -> None:
+    length = 16384
+    signal = np.zeros((length, channels), dtype=np.float64)
+    tail = np.exp(-np.arange(length - 32, dtype=np.float64) / 7000.0)
+    tone = np.sin(2.0 * np.pi * 500.0 * np.arange(length - 32, dtype=np.float64) / 16000.0) * np.exp(-np.arange(length - 32, dtype=np.float64) / 12000.0)
+    for channel in range(channels):
+        signal[32, channel] = 1.0 - channel * 0.05
+        signal[32:, channel] += (0.1 + channel * 0.005) * tail + 0.02 * tone
+    prediction = signal.copy()
+    prediction[32:, :] *= 0.92
+    np.save(tmp_path / "reference.npy", signal)
+    np.save(tmp_path / "prediction.npy", prediction)
+    sample = RIRSample(
+        str(tmp_path / "prediction.npy"),
+        str(tmp_path / "reference.npy"),
+        sample_rate=16000,
+        sample_id=f"iso-{channels}ch",
+        channel_layout="mono" if channels == 1 else "binaural_lr" if channels == 2 else "multi_channel",
+    )
+    metrics = (
+        "rir_edt_m_mae",
+        "rir_edt_broadband_mae",
+        "rir_edt_jnd_mae",
+        "rir_c80_jnd_mae",
+        "rir_d50_jnd_mae",
+        "rir_ts_jnd_mae",
+    )
+    results = evaluate_rir_samples([sample], metrics=metrics).details["results"]
+    assert set(results) == set(metrics)
+    for metric in ("rir_edt_jnd_mae", "rir_c80_jnd_mae", "rir_d50_jnd_mae", "rir_ts_jnd_mae"):
+        result = results[metric]
+        assert result["valid_samples"] == 1
+        assert len(result["per_sample"][0]["channels"]) == channels
+        assert result["within_one_jnd_percent"] == pytest.approx(100.0)
+
+
+def test_rir_iso3382_routes_describe_and_preserve_jnd_details() -> None:
+    from sure_eval.evaluation.scripts import describe_pipeline
+
+    for metric in ("edt", "broadband_edt", "edt_jnd", "c80_jnd", "d50_jnd", "ts_jnd"):
+        description = describe_pipeline("rir", metric=metric)
+        assert description.pipeline_id.startswith("rir.any.")
+        assert description.computation_node_ids[0].startswith("scoring/rir_")
 
 
 @pytest.mark.parametrize("metric", ("rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae"))

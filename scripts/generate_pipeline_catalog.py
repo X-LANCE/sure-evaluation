@@ -114,6 +114,8 @@ BUNDLE_COMBINATIONS = (
             )
         },
     ),
+    ("rir", {"metrics": ("rir_edt_m_mae", "rir_edt_broadband_mae")}),
+    ("rir", {"metrics": ("rir_edt_jnd_mae", "rir_c80_jnd_mae", "rir_d50_jnd_mae", "rir_ts_jnd_mae")}),
 )
 
 

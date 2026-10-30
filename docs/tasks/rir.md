@@ -51,6 +51,12 @@ used when it is omitted.
 | `rir_c50_mae` | C50 error in dB | lower is better |
 | `rir_c80_mae` | C80 error in dB | lower is better |
 | `rir_edc_mae` | energy decay curve MAE above -40 dB in dB | lower is better |
+| `rir_edt_m_mae` | 500 Hz/1 kHz octave-band EDT MAE in seconds | lower is better |
+| `rir_edt_broadband_mae` | broadband EDT MAE in seconds | lower is better |
+| `rir_edt_jnd_mae` | EDT error divided by 5% reference EDT (`x_jnd`) | lower is better |
+| `rir_c80_jnd_mae` | C80 error divided by 1 dB (`x_jnd`) | lower is better |
+| `rir_d50_jnd_mae` | D50 error divided by 0.05 (`x_jnd`) | lower is better |
+| `rir_ts_jnd_mae` | centre-time error divided by 10 ms (`x_jnd`) | lower is better |
 | `rir_iacc_mae` | compatibility alias for full-window IACC error | lower is better |
 | `rir_iacc_full_mae` | full-window interaural cross-correlation coefficient error in a +/-1 ms window | lower is better |
 | `rir_iacc_early_mae` | IACC from the ch0 direct peak through 80 ms | lower is better |
@@ -68,6 +74,32 @@ rir.any.multi.rir_npm.rir_npm_v1__rt30_mae.rt30_mae_v1__rt60_mae.rt60_mae_v1__ri
 
 The bundle's top-level `score` is `rir_npm`; all metric scores are in
 `details.results`. This is a reporting convention, not a combined score.
+
+## ISO 3382 EDT and JND routes
+
+`rir_edt_m_mae` follows the leaderboard protocol: detect the first broadband
+sample within 20 dB of the peak, filter at 500 Hz and 1 kHz with a zero-phase
+Butterworth octave-band filter, fit the initial 0 to -10 dB Schroeder decay,
+extrapolate to 60 dB, average the two band values per channel, and report
+seconds of absolute error. `rir_edt_broadband_mae` performs the same decay fit
+on the full-band signal with an independent channel onset and does not apply a
+JND threshold.
+
+The four `*_jnd_mae` routes use the informative BS EN ISO 3382-1:2009 Annex A
+Table A.1 thresholds: EDT 5% of the reference EDT, C80 1 dB, D50 0.05, and Ts
+10 ms. Each route reports a dimensionless mean error in `x_jnd`, plus
+`absolute_mae`, `mean_jnd`, `within_one_jnd_percent`, `valid_samples`, and
+`total_samples` in its result details. All four routes support one or more
+channels. Channel errors are averaged; a sample counts as within one JND only
+when every channel passes. This channel aggregation and pass-rate definition
+are benchmark rules, not ISO-prescribed auditorium reporting.
+
+The standard's frequency averaging is retained for all four JND parameters:
+500 Hz and 1 kHz are averaged per channel. The implementation uses a sixth
+order Butterworth prototype and zero-phase filtering; IEC 61260 certification,
+measured background levels, source calibration, and auditorium measurement
+conditions are not claimed. Existing `rir_edc_mae` remains an energy-curve
+error in dB and must not be interpreted as EDT.
 
 For cross-channel base evaluation, the curated bundle is:
 

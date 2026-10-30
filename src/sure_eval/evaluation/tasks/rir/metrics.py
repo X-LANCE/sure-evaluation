@@ -10,6 +10,13 @@ from sure_eval.evaluation.base import MetricResult
 from sure_eval.evaluation.tasks.rir.types import RIRSample
 
 _EPSILON = 1e-12
+_ISO3382_CENTRES_HZ = (500.0, 1000.0)
+_ISO3382_JND_THRESHOLDS = {
+    "edt": "5% relative to reference EDT",
+    "c80": "1 dB",
+    "d50": "0.05",
+    "ts": "10 ms",
+}
 
 
 def _load(path: str) -> tuple[np.ndarray, int]:
@@ -434,6 +441,180 @@ def rir_edc_mae(samples: list[RIRSample]) -> MetricResult:
     )
 
 
+def _iso3382_filters(sample_rate: int) -> tuple[np.ndarray, ...]:
+    try:
+        from scipy.signal import butter
+    except ImportError as exc:
+        raise RuntimeError("ISO 3382 RIR metrics require the audio extra: pip install 'sure-evaluation[audio]'") from exc
+    import math
+
+    return tuple(
+        butter(
+            6,
+            (centre / math.sqrt(2.0), centre * math.sqrt(2.0)),
+            btype="bandpass",
+            fs=sample_rate,
+            output="sos",
+        )
+        for centre in _ISO3382_CENTRES_HZ
+    )
+
+
+def _iso3382_direct_onset(signal: np.ndarray) -> int:
+    envelope = np.max(np.abs(signal), axis=1)
+    peak = float(np.max(envelope)) if envelope.size else 0.0
+    if peak <= _EPSILON:
+        raise ValueError("silent RIR")
+    return int(np.flatnonzero(envelope >= peak * 0.1)[0])
+
+
+def _iso3382_band_parameters(filtered: np.ndarray, sample_rate: int) -> dict[str, float]:
+    energy = np.square(np.asarray(filtered, dtype="float64").reshape(-1))
+    total = float(np.sum(energy))
+    if total <= _EPSILON:
+        raise ValueError("insufficient band energy")
+    p50 = min(len(energy), int(round(0.050 * sample_rate)))
+    p80 = min(len(energy), int(round(0.080 * sample_rate)))
+    early50 = float(np.sum(energy[:p50]))
+    early80 = float(np.sum(energy[:p80]))
+    late80 = total - early80
+    c80 = float(10.0 * np.log10(early80 / late80)) if p80 < len(energy) and early80 > _EPSILON and late80 > _EPSILON else float("nan")
+    curve = np.cumsum(energy[::-1])[::-1]
+    edc_db = 10.0 * np.log10(np.maximum(curve / total, _EPSILON))
+    below = np.flatnonzero(edc_db <= -10.0)
+    edt = float("nan")
+    if below.size and int(below[0]) >= 4:
+        end = int(below[0])
+        slope, _ = np.polyfit(np.arange(end + 1, dtype="float64") / sample_rate, edc_db[: end + 1], 1)
+        if slope < 0.0:
+            edt = float(-60.0 / slope)
+    return {
+        "edt": edt,
+        "c80": c80,
+        "d50": float(early50 / total),
+        "ts": float(1000.0 * np.dot(np.arange(len(energy), dtype="float64") / sample_rate, energy) / total),
+    }
+
+
+def _iso3382_parameters(signal: np.ndarray, sample_rate: int) -> list[dict[str, float]]:
+    signal = np.asarray(signal, dtype="float64")
+    onset = _iso3382_direct_onset(signal)
+    try:
+        from scipy.signal import sosfiltfilt
+    except ImportError as exc:
+        raise RuntimeError("ISO 3382 RIR metrics require the audio extra: pip install 'sure-evaluation[audio]'") from exc
+    bands = [sosfiltfilt(sos, signal, axis=0)[onset:] for sos in _iso3382_filters(sample_rate)]
+    channels = []
+    for channel in range(signal.shape[1]):
+        by_band = [_iso3382_band_parameters(band[:, channel], sample_rate) for band in bands]
+        channels.append({metric: float(np.mean([item[metric] for item in by_band])) for metric in _ISO3382_JND_THRESHOLDS})
+    return channels
+
+
+def _broadband_edt(signal: np.ndarray, sample_rate: int) -> list[float]:
+    values = []
+    for channel in range(signal.shape[1]):
+        x = signal[:, channel]
+        energy = np.cumsum((x**2)[::-1])[::-1]
+        if not energy.size or float(energy[0]) <= _EPSILON:
+            values.append(float("nan"))
+            continue
+        edc_db = 10.0 * np.log10(np.maximum(energy / energy[0], _EPSILON))
+        below = np.flatnonzero(edc_db <= -10.0)
+        if not below.size or int(below[0]) < 4:
+            values.append(float("nan"))
+            continue
+        end = int(below[0])
+        slope, _ = np.polyfit(np.arange(end + 1, dtype="float64") / sample_rate, edc_db[: end + 1], 1)
+        values.append(float(-60.0 / slope) if slope < 0.0 else float("nan"))
+    return values
+
+
+def _iso3382_edt_mae(samples: list[RIRSample], *, metric_name: str, broadband: bool = False) -> MetricResult:
+    values = []
+    rows = []
+    for sample in samples:
+        prediction, reference, rate = _pair(sample)
+        if broadband:
+            prediction_onset = _iso3382_direct_onset(prediction)
+            reference_onset = _iso3382_direct_onset(reference)
+            prediction_values = _broadband_edt(prediction[prediction_onset:], rate)
+            reference_values = _broadband_edt(reference[reference_onset:], rate)
+        else:
+            prediction_values = [row["edt"] for row in _iso3382_parameters(prediction, rate)]
+            reference_values = [row["edt"] for row in _iso3382_parameters(reference, rate)]
+        errors = [abs(predicted - target) for predicted, target in zip(prediction_values, reference_values) if np.isfinite(predicted) and np.isfinite(target)]
+        if len(errors) != prediction.shape[1]:
+            raise ValueError(f"EDT could not be estimated for {sample.sample_id}")
+        channel_rows = [
+            {"channel": channel, "prediction_edt": float(predicted), "reference_edt": float(target), "score": float(error), "unit": "seconds"}
+            for channel, (predicted, target, error) in enumerate(zip(prediction_values, reference_values, errors))
+        ]
+        score = float(np.mean(errors))
+        values.append(score)
+        rows.append({"sample_id": sample.sample_id, "score": score, "channels": channel_rows, "frequency_bands_hz": [] if broadband else list(_ISO3382_CENTRES_HZ), "unit": "seconds"})
+    return MetricResult(metric_name, _mean(values), {"per_sample": rows, "higher_is_better": False, "unit": "seconds", "frequency_bands_hz": [] if broadband else list(_ISO3382_CENTRES_HZ), "frequency_averaging": "arithmetic_mean_per_channel" if not broadband else "broadband"})
+
+
+def rir_edt_m_mae(samples: list[RIRSample]) -> MetricResult:
+    return _iso3382_edt_mae(samples, metric_name="rir_edt_m_mae")
+
+
+def rir_edt_broadband_mae(samples: list[RIRSample]) -> MetricResult:
+    return _iso3382_edt_mae(samples, metric_name="rir_edt_broadband_mae", broadband=True)
+
+
+def _iso3382_jnd_mae(samples: list[RIRSample], *, metric_name: str, parameter: str) -> MetricResult:
+    values = []
+    absolute_values = []
+    pass_values = []
+    rows = []
+    threshold_description = _ISO3382_JND_THRESHOLDS[parameter]
+    for sample in samples:
+        prediction, reference, rate = _pair(sample)
+        prediction_values = _iso3382_parameters(prediction, rate)
+        reference_values = _iso3382_parameters(reference, rate)
+        channel_rows = []
+        errors = []
+        jnd_errors = []
+        passes = []
+        for channel in range(prediction.shape[1]):
+            predicted = prediction_values[channel][parameter]
+            target = reference_values[channel][parameter]
+            threshold = 0.05 * target if parameter == "edt" else {"c80": 1.0, "d50": 0.05, "ts": 10.0}[parameter]
+            if not all(np.isfinite(value) for value in (predicted, target, threshold)) or threshold <= _EPSILON:
+                raise ValueError(f"{parameter.upper()} JND could not be estimated for {sample.sample_id}, channel {channel}")
+            error = abs(predicted - target)
+            jnd_error = error / threshold
+            errors.append(error)
+            jnd_errors.append(jnd_error)
+            passes.append(error <= threshold)
+            channel_rows.append({"channel": channel, "prediction": float(predicted), "reference": float(target), "absolute_error": float(error), "jnd_error": float(jnd_error), "within_one_jnd": bool(error <= threshold), "threshold": float(threshold), "unit": "seconds" if parameter == "edt" else "dB" if parameter == "c80" else "ratio" if parameter == "d50" else "ms"})
+        sample_jnd = float(np.mean(jnd_errors))
+        sample_absolute = float(np.mean(errors))
+        values.append(sample_jnd)
+        absolute_values.append(sample_absolute)
+        pass_values.append(bool(all(passes)))
+        rows.append({"sample_id": sample.sample_id, "score": sample_jnd, "absolute_error": sample_absolute, "jnd_error": sample_jnd, "within_one_jnd": bool(all(passes)), "channels": channel_rows})
+    return MetricResult(metric_name, _mean(values), {"per_sample": rows, "higher_is_better": False, "unit": "x_jnd", "jnd_parameter": parameter, "jnd_threshold": threshold_description, "absolute_mae": float(np.mean(absolute_values)), "mean_jnd": _mean(values), "within_one_jnd_percent": 100.0 * float(np.mean(pass_values)), "valid_samples": len(values), "total_samples": len(samples), "channel_aggregation": "arithmetic_mean; all channels required for within-one-JND pass", "frequency_bands_hz": list(_ISO3382_CENTRES_HZ), "frequency_averaging": "arithmetic_mean_per_channel"})
+
+
+def rir_edt_jnd_mae(samples: list[RIRSample]) -> MetricResult:
+    return _iso3382_jnd_mae(samples, metric_name="rir_edt_jnd_mae", parameter="edt")
+
+
+def rir_c80_jnd_mae(samples: list[RIRSample]) -> MetricResult:
+    return _iso3382_jnd_mae(samples, metric_name="rir_c80_jnd_mae", parameter="c80")
+
+
+def rir_d50_jnd_mae(samples: list[RIRSample]) -> MetricResult:
+    return _iso3382_jnd_mae(samples, metric_name="rir_d50_jnd_mae", parameter="d50")
+
+
+def rir_ts_jnd_mae(samples: list[RIRSample]) -> MetricResult:
+    return _iso3382_jnd_mae(samples, metric_name="rir_ts_jnd_mae", parameter="ts")
+
+
 def _early_late(signal: np.ndarray, rate: int, window_ms: float) -> tuple[float, float]:
     x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
     peak = int(np.argmax(np.abs(x)))
@@ -769,6 +950,12 @@ __all__ = [
     "rir_doa_mae",
     "rir_drr_mae",
     "rir_edc_mae",
+    "rir_edt_m_mae",
+    "rir_edt_broadband_mae",
+    "rir_edt_jnd_mae",
+    "rir_c80_jnd_mae",
+    "rir_d50_jnd_mae",
+    "rir_ts_jnd_mae",
     "rir_iacc_mae",
     "rir_ild_mae",
     "rir_ipd_mae",

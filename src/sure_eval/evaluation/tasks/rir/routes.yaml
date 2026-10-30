@@ -52,6 +52,54 @@ routes:
     input_contract: scoring/rir_edc_mae
     executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
   -
+    metric: rir_edt_m_mae
+    aliases: [edt, edt_m, rir_edt]
+    family: room_acoustics
+    pipeline_id: rir.any.rir_edt_m_mae.rir_edt_m_mae_v1
+    nodes: [scoring/rir_edt_m_mae]
+    input_contract: scoring/rir_edt_m_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_edt_broadband_mae
+    aliases: [broadband_edt, edt_broadband]
+    family: room_acoustics
+    pipeline_id: rir.any.rir_edt_broadband_mae.rir_edt_broadband_mae_v1
+    nodes: [scoring/rir_edt_broadband_mae]
+    input_contract: scoring/rir_edt_broadband_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_edt_jnd_mae
+    aliases: [edt_jnd]
+    family: iso3382_jnd
+    pipeline_id: rir.any.rir_edt_jnd_mae.rir_edt_jnd_mae_v1
+    nodes: [scoring/rir_edt_jnd_mae]
+    input_contract: scoring/rir_edt_jnd_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_c80_jnd_mae
+    aliases: [c80_jnd]
+    family: iso3382_jnd
+    pipeline_id: rir.any.rir_c80_jnd_mae.rir_c80_jnd_mae_v1
+    nodes: [scoring/rir_c80_jnd_mae]
+    input_contract: scoring/rir_c80_jnd_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_d50_jnd_mae
+    aliases: [d50_jnd]
+    family: iso3382_jnd
+    pipeline_id: rir.any.rir_d50_jnd_mae.rir_d50_jnd_mae_v1
+    nodes: [scoring/rir_d50_jnd_mae]
+    input_contract: scoring/rir_d50_jnd_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_ts_jnd_mae
+    aliases: [ts_jnd, centre_time_jnd]
+    family: iso3382_jnd
+    pipeline_id: rir.any.rir_ts_jnd_mae.rir_ts_jnd_mae_v1
+    nodes: [scoring/rir_ts_jnd_mae]
+    input_contract: scoring/rir_ts_jnd_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
     metric: rir_iacc_mae
     aliases: [iacc, rir_iacc]
     family: binaural_spatial_error

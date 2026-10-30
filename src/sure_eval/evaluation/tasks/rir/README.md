@@ -14,7 +14,9 @@ requires exactly two channels. Its bundle reports full, early, and late
 windows: full RIR, ch0 direct peak through 80 ms, and the remainder after
 80 ms. Each window uses normalized cross-correlation in a +/-1 ms lag window.
 ITD, ILD, IPD, and DOA use channel 0 as the reference and report every `chN`
-pair. ILD and IPD are frequency-domain interaural errors.
+pair. ILD and IPD are frequency-domain interaural errors. ISO 3382 EDT, C80,
+D50, and Ts routes support one or more channels and average channel errors;
+within-one-JND requires every channel in the sample to pass.
 The default bundle reports `rir_npm` as its top-level score and keeps the
 individual metric scores in `details.results`.
 

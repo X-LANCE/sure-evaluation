@@ -9,6 +9,12 @@ implemented_metrics:
   - rir_c50_mae
   - rir_c80_mae
   - rir_edc_mae
+  - rir_edt_m_mae
+  - rir_edt_broadband_mae
+  - rir_edt_jnd_mae
+  - rir_c80_jnd_mae
+  - rir_d50_jnd_mae
+  - rir_ts_jnd_mae
   - rir_iacc_mae
   - rir_iacc_full_mae
   - rir_iacc_early_mae
@@ -91,6 +97,54 @@ input_contracts:
     row_format: rir_samples_jsonl
     alignment_key: sample_id
     aggregation: mean
+    main_report: true
+  scoring/rir_edt_m_mae:
+    purpose: rir_iso3382_octave_band_edt_absolute_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_edt_broadband_mae:
+    purpose: rir_broadband_edt_absolute_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_edt_jnd_mae:
+    purpose: rir_iso3382_edt_jnd_multiple
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean_over_channel_jnd_errors
+    main_report: true
+  scoring/rir_c80_jnd_mae:
+    purpose: rir_iso3382_c80_jnd_multiple
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean_over_channel_jnd_errors
+    main_report: true
+  scoring/rir_d50_jnd_mae:
+    purpose: rir_iso3382_d50_jnd_multiple
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean_over_channel_jnd_errors
+    main_report: true
+  scoring/rir_ts_jnd_mae:
+    purpose: rir_iso3382_centre_time_jnd_multiple
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean_over_channel_jnd_errors
     main_report: true
   scoring/rir_ild_mae:
     purpose: multichannel_interchannel_level_difference_error

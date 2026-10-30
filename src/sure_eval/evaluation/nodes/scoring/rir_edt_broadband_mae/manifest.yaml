@@ -1,0 +1,12 @@
+id: scoring/rir_edt_broadband_mae
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: rir_samples_jsonl
+output_schema: rir_edt_broadband_mae_score
+implementation: sure_eval.evaluation.tasks.rir.metrics.rir_edt_broadband_mae
+metric: rir_edt_broadband_mae
+backend: numpy-rir
+internal_stages: [audio_load, independent_direct_onset, schroeder_decay, edt_fit, mean_aggregation]
+used_by: [RIR room acoustics]
+notes: [Lower is better. Unit is seconds. Full-band 0 to -10 dB decay fit extrapolated to 60 dB.]
