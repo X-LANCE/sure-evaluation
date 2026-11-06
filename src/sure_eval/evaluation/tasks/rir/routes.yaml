@@ -100,16 +100,8 @@ routes:
     input_contract: scoring/rir_ts_jnd_mae
     executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
   -
-    metric: rir_iacc_mae
-    aliases: [iacc, rir_iacc]
-    family: binaural_spatial_error
-    pipeline_id: rir.any.rir_iacc_mae.rir_iacc_mae_v1
-    nodes: [scoring/rir_iacc_mae]
-    input_contract: scoring/rir_iacc_mae
-    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
-  -
     metric: rir_iacc_full_mae
-    aliases: [iacc_full, rir_iacc_full]
+    aliases: [iacc, rir_iacc, rir_iacc_mae, iacc_full, rir_iacc_full]
     family: binaural_spatial_error
     pipeline_id: rir.any.rir_iacc_full_mae.rir_iacc_full_mae_v1
     nodes: [scoring/rir_iacc_full_mae]

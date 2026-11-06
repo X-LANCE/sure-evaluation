@@ -30,7 +30,6 @@ from sure_eval.evaluation.tasks.rir.metrics import (
     rir_iacc_early_mae,
     rir_iacc_full_mae,
     rir_iacc_late_mae,
-    rir_iacc_mae,
     rir_ild_mae,
     rir_ipd_mae,
     rir_itd_mae,
@@ -46,8 +45,9 @@ DEFAULT_METRICS = ("rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_ma
 METRIC_ALIASES = {
     "npm": "rir_npm",
     "rir_npm": "rir_npm",
-    "iacc": "rir_iacc_mae",
-    "rir_iacc": "rir_iacc_mae",
+    "iacc": "rir_iacc_full_mae",
+    "rir_iacc": "rir_iacc_full_mae",
+    "rir_iacc_mae": "rir_iacc_full_mae",
     "iacc_full": "rir_iacc_full_mae",
     "iacc_early": "rir_iacc_early_mae",
     "iacc_late": "rir_iacc_late_mae",
@@ -77,7 +77,6 @@ METRICS = {
     "rir_c80_jnd_mae": ("scoring/rir_c80_jnd_mae", rir_c80_jnd_mae),
     "rir_d50_jnd_mae": ("scoring/rir_d50_jnd_mae", rir_d50_jnd_mae),
     "rir_ts_jnd_mae": ("scoring/rir_ts_jnd_mae", rir_ts_jnd_mae),
-    "rir_iacc_mae": ("scoring/rir_iacc_mae", rir_iacc_mae),
     "rir_iacc_full_mae": ("scoring/rir_iacc_full_mae", rir_iacc_full_mae),
     "rir_iacc_early_mae": ("scoring/rir_iacc_early_mae", rir_iacc_early_mae),
     "rir_iacc_late_mae": ("scoring/rir_iacc_late_mae", rir_iacc_late_mae),
@@ -86,9 +85,9 @@ METRICS = {
     "rir_ipd_mae": ("scoring/rir_ipd_mae", rir_ipd_mae),
     "rir_doa_mae": ("scoring/rir_doa_mae", rir_doa_mae),
 }
-IACC_METRICS = frozenset({"rir_iacc_mae", "rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae"})
+IACC_METRICS = frozenset({"rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae"})
 SPATIAL_METRICS = frozenset(
-    {"rir_iacc_mae", "rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
+    {"rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
 )
 
 
@@ -100,7 +99,12 @@ def evaluate_rir_samples(
 ) -> EvaluationReport:
     if not samples:
         raise ValueError("at least one RIR sample is required")
-    requested = tuple(_normalize_metric(metric) for metric in (metrics or DEFAULT_METRICS))
+    requested_values = []
+    for metric in (metrics or DEFAULT_METRICS):
+        normalized = _normalize_metric(metric)
+        if normalized not in requested_values:
+            requested_values.append(normalized)
+    requested = tuple(requested_values)
     if not requested:
         raise ValueError("at least one RIR metric is required")
     unsupported = [metric for metric in requested if metric not in METRICS]

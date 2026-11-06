@@ -72,8 +72,8 @@ def test_rir_pipeline_describes_registered_route() -> None:
     )
 
     iacc = describe_pipeline("rir", metric="iacc")
-    assert iacc.pipeline_id == "rir.any.rir_iacc_mae.rir_iacc_mae_v1"
-    assert iacc.metric == "rir_iacc_mae"
+    assert iacc.pipeline_id == "rir.any.rir_iacc_full_mae.rir_iacc_full_mae_v1"
+    assert iacc.metric == "rir_iacc_full_mae"
     for metric in ("rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae"):
         window = describe_pipeline("rir", metric=metric)
         assert window.metric == metric
@@ -136,6 +136,12 @@ def test_rir_cli_routes_describe_and_run_preserve_pipeline_id(tmp_path: Path) ->
     assert routes.exit_code == 0, routes.stdout
     routes_payload = json.loads(routes.stdout)
     assert routes_payload["default_pipeline_id"] == "rir.any.rir_npm.rir_npm_v1"
+
+    iacc_routes = runner.invoke(app, ["metric", "routes", "rir", "--metric", "iacc", "--json"])
+    assert iacc_routes.exit_code == 0, iacc_routes.stdout
+    assert json.loads(iacc_routes.stdout)["default_pipeline_id"] == (
+        "rir.any.rir_iacc_full_mae.rir_iacc_full_mae_v1"
+    )
 
     described = runner.invoke(
         app,
@@ -281,14 +287,15 @@ def test_rir_minimal_examples_cover_every_registered_metric(tmp_path: Path) -> N
     )
     mono_report = evaluate_rir_samples([mono], metrics=acoustic_metrics + iso_metrics, channel_mode="single")
     binaural_report = evaluate_rir_samples(
-        [binaural], metrics=acoustic_metrics + ("rir_iacc_mae", "rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"), channel_mode="binaural"
+        [binaural], metrics=acoustic_metrics + ("rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"), channel_mode="binaural"
     )
     four_report = evaluate_rir_samples(
         [four], metrics=acoustic_metrics + ("rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"), channel_mode="multi"
     )
     covered = set(mono_report.details["results"]) | set(binaural_report.details["results"]) | set(four_report.details["results"])
     assert covered == set(METRICS)
-    assert binaural_report.details["results"]["rir_iacc_mae"]["score"] == binaural_report.details["results"]["rir_iacc_full_mae"]["score"]
+    alias_report = evaluate_rir_samples([binaural], metrics=("iacc", "iacc_full"), channel_mode="binaural")
+    assert set(alias_report.details["results"]) == {"rir_iacc_full_mae"}
     assert four_report.details["results"]["rir_doa_mae"]["per_sample"][0]["pair_count"] == 3
 
 
@@ -536,7 +543,6 @@ def test_rir_nodes_are_in_process_environment_checks() -> None:
         "rir_c80_jnd_mae",
         "rir_d50_jnd_mae",
         "rir_ts_jnd_mae",
-        "rir_iacc_mae",
         "rir_iacc_full_mae",
         "rir_iacc_early_mae",
         "rir_iacc_late_mae",
@@ -595,6 +601,24 @@ def test_rir_iso3382_routes_describe_and_preserve_jnd_details() -> None:
         description = describe_pipeline("rir", metric=metric)
         assert description.pipeline_id.startswith("rir.any.")
         assert description.computation_node_ids[0].startswith("scoring/rir_")
+
+
+def test_rir_broadband_edt_remains_strict_for_insufficient_decay(tmp_path: Path) -> None:
+    reference = np.zeros((256, 1), dtype=np.float64)
+    prediction = np.zeros((256, 1), dtype=np.float64)
+    reference[8, 0] = 1.0
+    prediction[8, 0] = 0.9
+    np.save(tmp_path / "reference.npy", reference)
+    np.save(tmp_path / "prediction.npy", prediction)
+    sample = RIRSample(
+        str(tmp_path / "prediction.npy"),
+        str(tmp_path / "reference.npy"),
+        sample_rate=16000,
+        sample_id="broadband-short-decay",
+        channel_layout="mono",
+    )
+    with pytest.raises(ValueError, match="rir_edt_broadband_mae could not be estimated"):
+        evaluate_rir_samples([sample], metrics=("rir_edt_broadband_mae",), channel_mode="single")
 
 
 @pytest.mark.parametrize("metric", ("rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae"))

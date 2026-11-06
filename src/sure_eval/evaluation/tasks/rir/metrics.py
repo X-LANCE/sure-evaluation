@@ -545,7 +545,7 @@ def _iso3382_edt_mae(samples: list[RIRSample], *, metric_name: str, broadband: b
             reference_values = [row["edt"] for row in _iso3382_parameters(reference, rate)]
         errors = [abs(predicted - target) for predicted, target in zip(prediction_values, reference_values) if np.isfinite(predicted) and np.isfinite(target)]
         if len(errors) != prediction.shape[1]:
-            raise ValueError(f"EDT could not be estimated for {sample.sample_id}")
+            raise ValueError(f"{metric_name} could not be estimated for {sample.sample_id}")
         channel_rows = [
             {"channel": channel, "prediction_edt": float(predicted), "reference_edt": float(target), "score": float(error), "unit": "seconds"}
             for channel, (predicted, target, error) in enumerate(zip(prediction_values, reference_values, errors))
@@ -780,7 +780,7 @@ def rir_iacc_late_mae(samples: list[RIRSample]) -> MetricResult:
 
 
 def rir_iacc_mae(samples: list[RIRSample]) -> MetricResult:
-    """Compatibility alias for the full-window IACC error."""
+    """Deprecated compatibility wrapper for the full-window IACC error."""
     result = rir_iacc_full_mae(samples)
     return MetricResult("rir_iacc_mae", result.score, result.details)
 
@@ -940,7 +940,7 @@ def rir_doa_mae(samples: list[RIRSample]) -> MetricResult:
 
 # Short aliases keep direct task-level callers aligned with the public metric
 # selectors while reports retain the explicit ``*_mae`` names.
-iacc = rir_iacc_mae
+iacc = rir_iacc_full_mae
 itd = rir_itd_mae
 
 
@@ -956,6 +956,9 @@ __all__ = [
     "rir_c80_jnd_mae",
     "rir_d50_jnd_mae",
     "rir_ts_jnd_mae",
+    "rir_iacc_full_mae",
+    "rir_iacc_early_mae",
+    "rir_iacc_late_mae",
     "rir_iacc_mae",
     "rir_ild_mae",
     "rir_ipd_mae",

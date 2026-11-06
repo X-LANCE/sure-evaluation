@@ -136,6 +136,7 @@ def list_metric_routes(
     routes, _ = load_task_routes(route_task)
     requested_language = _normalize_language_filter(language)
     requested_metric = canonical_metric(metric) if metric else None
+    requested_metric_tokens = _metric_filter_tokens(metric) if metric else set()
     language_sensitive = bool(routes.get("language_sensitive", False))
     if not language_sensitive and requested_language not in {None, "n/a"}:
         raise ValueError(f"Task {task!r} is language-independent; omit --language or use any")
@@ -146,10 +147,7 @@ def list_metric_routes(
         route = dict(configured_route)
         if not _route_matches_task_alias(route, requested_task):
             continue
-        if (
-            requested_metric
-            and canonical_metric(str(route.get("metric") or "")) != requested_metric
-        ):
+        if requested_metric_tokens and not requested_metric_tokens.intersection(_route_metric_tokens(route)):
             continue
         route_language = _concrete_route_language(
             route,
@@ -289,6 +287,21 @@ def _route_matches_task_alias(route: dict[str, Any], requested_task: str) -> boo
     if route_alias is None:
         return True
     return normalize_task(str(route_alias)) == requested_task
+
+
+def _metric_filter_tokens(metric: str) -> set[str]:
+    """Return raw and canonical forms accepted by route selection."""
+
+    raw = str(metric).strip().lower().replace("-", "_")
+    return {raw, canonical_metric(raw)}
+
+
+def _route_metric_tokens(route: dict[str, Any]) -> set[str]:
+    tokens: set[str] = set()
+    for value in (route.get("metric"), *(route.get("aliases") or ())):
+        raw = str(value).strip().lower().replace("-", "_")
+        tokens.update((raw, canonical_metric(raw)))
+    return tokens
 
 
 def _route_matches_language(route: dict[str, Any], requested_language: str | None) -> bool:
