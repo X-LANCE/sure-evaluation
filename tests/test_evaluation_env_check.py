@@ -118,6 +118,33 @@ def test_pip_runtime_node_checks_declared_imports(monkeypatch) -> None:
     assert "pip install" in result.fix
 
 
+def test_pip_runtime_verifies_external_model_asset(monkeypatch, tmp_path: Path) -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    root = tmp_path / "nodes"
+    node = root / "scoring" / "example"
+    node.mkdir(parents=True)
+    model = tmp_path / "model"
+    model.mkdir()
+    (model / "weights.bin").write_bytes(b"checkpoint")
+    (node / "node_env.yaml").write_text(
+        "runtime:\n  type: pip\nverify:\n  files:\n"
+        "    - path: weights.bin\n      relative_to_env: TEST_SE_MODEL_DIR\n"
+        "      default_base: checkpoints/model\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("TEST_SE_MODEL_DIR", str(model))
+    from sure_eval.evaluation.scripts.contracts import load_yaml
+
+    config = load_yaml(node / "node_env.yaml")
+    checker = NodeEnvChecker(nodes_root=root)
+    assert checker._check_pip_node("scoring/example", node, config).status == "ok"
+    (model / "weights.bin").unlink()
+    result = checker._check_pip_node("scoring/example", node, config)
+    assert result.status == "failed"
+    assert str(model / "weights.bin") in result.message
+
+
 def test_wetext_norm_env_check_uses_node_local_runtime() -> None:
     from sure_eval.evaluation.env_check import NodeEnvChecker
 
@@ -173,8 +200,16 @@ def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
     )
 
     runtime = build_tts_runtime(
-        metrics=("sim/wavlm-large", "sim/ecapa-tdnn", "sim/eres2net", "dnsmos", "wv-mos", "utmos"),
-        language="en",
+        metrics=(
+            "sim/wavlm-large",
+            "sim/ecapa-tdnn",
+            "sim/eres2net",
+            "dnsmos",
+            "wv-mos",
+            "utmos",
+            "komos",
+        ),
+        language="ko",
         device="cpu",
     )
 
@@ -190,6 +225,8 @@ def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
     assert runtime["mos_providers"]["wv-mos"].node_id == "scoring/wv_mos"
     assert isinstance(runtime["mos_providers"]["utmos"], NodeLocalMOSProvider)
     assert runtime["mos_providers"]["utmos"].node_id == "scoring/utmos"
+    assert isinstance(runtime["mos_providers"]["komos"], NodeLocalMOSProvider)
+    assert runtime["mos_providers"]["komos"].node_id == "scoring/komos"
 
 
 def test_se_runtime_uses_in_process_full_reference_and_node_local_mos() -> None:
@@ -467,9 +504,7 @@ def test_env_setup_dry_run_uses_exact_pipeline_json(tmp_path: Path) -> None:
 
     assert setup_result.exit_code == 0, setup_result.stdout
     payload = json.loads(setup_result.stdout)
-    assert [action["node_id"] for action in payload["actions"]] == [
-        "transcription/qwen3_asr_1_7b"
-    ]
+    assert [action["node_id"] for action in payload["actions"]] == ["transcription/qwen3_asr_1_7b"]
 
 
 def test_env_setup_rejects_tampered_pipeline_identity(tmp_path: Path) -> None:

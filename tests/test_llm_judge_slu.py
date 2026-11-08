@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import http.client
+import threading
 import urllib.error
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import MagicMock
 import pytest
 from typer.testing import CliRunner
@@ -27,7 +31,7 @@ def inputs(tmp_path):
     hyp = tmp_path / "hyp.txt"
     hyp.write_text("b\tAt nine.\na\tA\n", encoding="utf-8")
     config = tmp_path / "judge.json"
-    config.write_text(json.dumps({"base_url": "https://example.invalid/v1", "model": "test-judge"}),
+    config.write_text(json.dumps({"rubric": "Score correctness against the supplied evidence from 0 to 100.", "base_url": "https://example.invalid/v1", "model": "test-judge"}),
                       encoding="utf-8")
     return prompts, hyp, config
 
@@ -53,7 +57,7 @@ def test_node_aligns_answers_and_passes_only_explicit_context(inputs):
 
     result = node.score_slu_judge(
         hyp_file=str(hyp), prompt_jsonl=str(prompts),
-        config=node.JudgeConfig("https://example.invalid/v1", "fake"), caller=caller,
+        config=node.JudgeConfig("https://example.invalid/v1", "fake", rubric="Score correctness from 0 to 100."), caller=caller,
     )
     assert result.details["result"]["score"] == 3
     assert seen[0]["answer"] == "A"
@@ -62,10 +66,182 @@ def test_node_aligns_answers_and_passes_only_explicit_context(inputs):
     assert result.details["input_files"] == {"hyp": str(hyp), "prompt_jsonl": str(prompts)}
 
 
-@pytest.mark.parametrize("value", [True, 0, 6, 2.5, "5", float("nan")])
+@pytest.mark.parametrize("value", [True, -1, 101, "5", float("nan"), float("inf"), float("-inf")])
 def test_answer_scores_are_validated(value):
     with pytest.raises(node.JudgeError):
         node.validate_answer_judgment({"score": value, "reason": "test"})
+
+
+@pytest.mark.parametrize("score", [0, 100, 0.125, 99.875, 80])
+def test_percent_scale_accepts_boundaries_and_decimals_without_rounding(score):
+    assert node.validate_answer_judgment({"score": score, "reason": "ok"})["score"] == score
+
+
+@pytest.mark.parametrize("rubric", [None, "", " \n\t", 12, False, []])
+def test_invalid_rubric_rejected_before_api(inputs, tmp_path, monkeypatch, rubric):
+    prompts, hyp, config = inputs
+    payload = json.loads(config.read_text(encoding="utf-8"))
+    payload["rubric"] = rubric
+    config.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(node, "call_judge", lambda *args: pytest.fail("API must not be called"))
+    with pytest.raises(ValueError, match="rubric"):
+        run_task("slu", metric="llm_judge", hyp_file=str(hyp), prompt_jsonl=str(prompts),
+                 llm_config=str(config), output_dir=str(tmp_path / "out"))
+
+
+def test_missing_rubric_has_clear_cli_error_without_api(inputs, tmp_path, monkeypatch):
+    prompts, hyp, config = inputs
+    payload = json.loads(config.read_text(encoding="utf-8"))
+    payload.pop("rubric")
+    config.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(node, "call_judge", lambda *args: pytest.fail("API must not be called"))
+    spec = build_pipeline_spec("slu", metric="llm_judge")
+    spec["run_args"]["llm_config"] = str(config)
+    pipeline = tmp_path / "pipeline.json"
+    pipeline.write_text(json.dumps(spec), encoding="utf-8")
+    result = CliRunner().invoke(app, ["metric", "run", "--pipeline", str(pipeline),
+                                     "--hyp-file", str(hyp), "--prompt-jsonl", str(prompts),
+                                     "--output-dir", str(tmp_path / "out"), "--json"])
+    assert result.exit_code == 1
+    assert "rubric" in json.loads(result.stdout)["message"]
+    assert not (tmp_path / "out" / "report.json").exists()
+
+
+def test_rubric_is_sent_and_reported_with_hash_and_percent_mean(inputs, tmp_path, monkeypatch):
+    prompts, hyp, path = inputs
+    rubric = "Evidence-based correctness: 0 for contradiction; 100 for a complete match."
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload.update(rubric=rubric, api_key="fake-secret-not-for-report")
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    seen = []
+    scores = iter([0.125, 99.875])
+
+    def judge(config, messages):
+        seen.append(messages)
+        assert config.rubric == rubric
+        return {"score": next(scores), "reason": "using the supplied rubric"}
+
+    monkeypatch.setattr(node, "call_judge", judge)
+    report = run_task("slu", metric="llm_judge", hyp_file=str(hyp), prompt_jsonl=str(prompts),
+                      llm_config=str(path), output_dir=str(tmp_path / "out"))
+    assert report.score == 50
+    assert all(rubric in messages[0]["content"] for messages in seen)
+    assert all("1 to 5" not in messages[0]["content"] for messages in seen)
+    details = report.pipeline_trace[0].details
+    assert details["rubric"] == details["llm_config"]["rubric"] == rubric
+    assert details["rubric_sha256"] == hashlib.sha256(rubric.encode("utf-8")).hexdigest()
+    assert details["score_range"] == [0, 100]
+    assert [s["score"] for s in details["sample_results"]] == [0.125, 99.875]
+    assert "fake-secret-not-for-report" not in (tmp_path / "out" / "report.json").read_text()
+
+
+@pytest.mark.parametrize("failure", ["short_body", "bad_status"])
+def test_real_http_protocol_failure_keeps_partial_batch_report(inputs, tmp_path, monkeypatch, failure):
+    prompts, hyp, config = inputs
+    requests = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_POST(self):
+            requests.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+            if len(requests) == 2:
+                if failure == "bad_status":
+                    self.wfile.write(b"invalid HTTP status\r\n\r\n")
+                else:
+                    self.send_response(200)
+                    self.send_header("Content-Length", "9999")
+                    self.end_headers()
+                    self.wfile.write(b'{"partial":1')
+                self.close_connection = True
+                return
+            body = json.dumps({"model": "local-test-model", "choices": [{
+                "finish_reason": "stop", "message": {"content": json.dumps({
+                    "score": 80.5, "reason": "valid first answer"})}}]}).encode()
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    original_opener = node.urllib.request.build_opener
+    monkeypatch.setattr(node.urllib.request, "build_opener",
+                        lambda *handlers: original_opener(node.urllib.request.ProxyHandler({}), *handlers))
+    payload = json.loads(config.read_text(encoding="utf-8"))
+    payload.update(base_url=f"http://127.0.0.1:{server.server_port}/v1", api_key="fake-local-key", timeout=5)
+    config.write_text(json.dumps(payload), encoding="utf-8")
+    spec = build_pipeline_spec("slu", pipeline_id="slu.any.llm_judge.llm_judge_v1")
+    spec["run_args"]["llm_config"] = str(config)
+    pipeline = tmp_path / "pipeline.json"
+    pipeline.write_text(json.dumps(spec), encoding="utf-8")
+    out = tmp_path / "out"
+    try:
+        result = CliRunner().invoke(app, ["metric", "run", "--pipeline", str(pipeline),
+                                         "--hyp-file", str(hyp), "--prompt-jsonl", str(prompts),
+                                         "--output-dir", str(out), "--json"])
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+    assert result.exit_code == 1, result.output
+    assert "judge_batch_failed" in json.loads(result.stdout)["message"]
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    description = json.loads((out / "pipeline_description.json").read_text(encoding="utf-8"))
+    assert report["pipeline_id"] == description["pipeline_id"] == spec["pipeline_id"]
+    assert report["score"] is None
+    assert report["details"]["scoring_result"] == {
+        "score": None, "llm_judge": None, "status": "failed",
+        "num_samples": 2, "num_scored": 1, "num_failed": 1,
+    }
+    samples = report["pipeline_trace"][0]["details"]["sample_results"]
+    assert samples[0]["score"] == 80.5
+    assert samples[1] == {"key": "b", "status": "failed", "error_code": "api_http_protocol_error"}
+    assert len(requests) == 2
+    assert payload["rubric"] in requests[0]["messages"][0]["content"]
+
+
+@pytest.mark.parametrize("exception", [http.client.IncompleteRead(b"private", 100),
+                                       http.client.BadStatusLine("private"),
+                                       http.client.HTTPException("private")])
+def test_protocol_exceptions_are_sanitized_at_read_boundary(monkeypatch, exception):
+    opener = MagicMock()
+    opener.open.return_value.__enter__.return_value.read.side_effect = exception
+    monkeypatch.setattr(node.urllib.request, "build_opener", lambda *args: opener)
+    config = node.JudgeConfig("https://example.invalid", "fake", rubric="0-100", api_key="fake")
+    with pytest.raises(node.JudgeError, match="^api_http_protocol_error$"):
+        node.call_judge(config, [])
+
+
+def test_programming_errors_are_not_swallowed(inputs):
+    prompts, hyp, path = inputs
+
+    def broken_caller(*args):
+        raise RuntimeError("implementation bug")
+
+    with pytest.raises(RuntimeError, match="implementation bug"):
+        node.score_slu_judge(hyp_file=str(hyp), prompt_jsonl=str(prompts),
+                             config=node.JudgeConfig.from_file(path), caller=broken_caller)
+
+
+def test_judge_environment_needs_no_setup_or_credentials(tmp_path, monkeypatch):
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    monkeypatch.delenv("LLM_JUDGE_API_KEY", raising=False)
+    checked = NodeEnvChecker().check_node("scoring/llm_judge")
+    assert checked.status == "ok"
+    assert checked.runtime == "in_process"
+    assert checked.required is False
+    runner = CliRunner()
+    routes = json.loads(runner.invoke(app, ["metric", "routes", "slu", "--metric", "llm_judge", "--json"]).stdout)
+    assert routes["routes"][0]["setup_node_ids"] == []
+    pipeline = tmp_path / "pipeline.json"
+    pipeline.write_text(json.dumps(build_pipeline_spec("slu", metric="llm_judge")), encoding="utf-8")
+    result = runner.invoke(app, ["env", "setup", "--pipeline", str(pipeline), "--dry-run", "--json"])
+    assert result.exit_code == 0, result.output
+    assert "pip install" not in result.stdout
 
 
 def test_key_mismatch_prevents_api_call(inputs, monkeypatch):
@@ -74,7 +250,7 @@ def test_key_mismatch_prevents_api_call(inputs, monkeypatch):
     monkeypatch.setattr(node, "call_judge", lambda *args: pytest.fail("must not call API"))
     with pytest.raises(ValueError, match="same non-empty key set"):
         node.score_slu_judge(hyp_file=str(hyp), prompt_jsonl=str(prompts),
-                             config=node.JudgeConfig("https://example.invalid/v1", "fake"))
+                             config=node.JudgeConfig("https://example.invalid/v1", "fake", rubric="Score correctness from 0 to 100."))
 
 
 @pytest.mark.parametrize("rows", [
@@ -88,7 +264,7 @@ def test_invalid_questions_prevent_api_call(inputs, monkeypatch, rows):
     monkeypatch.setattr(node, "call_judge", lambda *args: pytest.fail("must not call API"))
     with pytest.raises(ValueError):
         node.score_slu_judge(hyp_file=str(hyp), prompt_jsonl=str(prompts),
-                            config=node.JudgeConfig("https://example.invalid/v1", "fake"))
+                            config=node.JudgeConfig("https://example.invalid/v1", "fake", rubric="Score correctness from 0 to 100."))
 
 
 def test_cli_routes_describe_run_and_standard_outputs(inputs, tmp_path, monkeypatch):
@@ -143,7 +319,7 @@ def test_pipeline_validates_llm_config_before_api_call(inputs, monkeypatch):
     from sure_eval.evaluation.tasks.slu.pipeline import evaluate_slu_files
 
     prompts, hyp, config = inputs
-    config.write_text(json.dumps({"base_url": "http://example.invalid/v1", "model": "test"}),
+    config.write_text(json.dumps({"rubric": "Score from 0 to 100.", "base_url": "http://example.invalid/v1", "model": "test"}),
                       encoding="utf-8")
     monkeypatch.setattr(node, "call_judge", lambda *args: pytest.fail("must not call API"))
     with pytest.raises(ValueError, match="HTTPS"):
@@ -187,7 +363,7 @@ def test_reference_key_mismatch_prevents_api_call(inputs, tmp_path, monkeypatch)
     with pytest.raises(ValueError, match="ref and hyp"):
         node.score_slu_judge(
             hyp_file=str(hyp), prompt_jsonl=str(prompts), ref_file=str(ref),
-            config=node.JudgeConfig("https://example.invalid/v1", "fake"),
+            config=node.JudgeConfig("https://example.invalid/v1", "fake", rubric="Score correctness from 0 to 100."),
         )
 
 
@@ -239,7 +415,7 @@ def test_api_protocol_and_returned_model(monkeypatch, credential_source):
     monkeypatch.setenv("LLM_JUDGE_API_KEY", "fake-test-key")
     monkeypatch.setattr(node.urllib.request, "build_opener", lambda *args: opener)
     config = node.JudgeConfig(
-        "https://example.invalid/v1", "test-model",
+        "https://example.invalid/v1", "test-model", rubric="Score correctness from 0 to 100.",
         api_key="local-test-key" if credential_source == "config" else None,
     )
     result = node.call_judge(config, [{"role": "user", "content": "test"}])
@@ -269,7 +445,7 @@ def test_api_errors_are_sanitized_and_truncation_rejected(monkeypatch, failure):
     monkeypatch.setenv("LLM_JUDGE_API_KEY", "fake-test-key")
     monkeypatch.setattr(node.urllib.request, "build_opener", lambda *args: opener)
     with pytest.raises(node.JudgeError, match=expected):
-        node.call_judge(node.JudgeConfig("https://example.invalid/v1", "test"), [])
+        node.call_judge(node.JudgeConfig("https://example.invalid/v1", "test", rubric="Score correctness from 0 to 100."), [])
 
 
 @pytest.mark.parametrize("credential_source", ["environment", "config"])
@@ -293,4 +469,36 @@ def test_standalone_cli_runs_slu(inputs, tmp_path, monkeypatch, credential_sourc
     assert "fake-test-key" not in content
     assert "local-test-key" not in content
     assert "api_key" not in json.loads(content)["details"]["llm_config"]
-    assert "local-test-key" not in repr(node.JudgeConfig("https://example.invalid/v1", "test", api_key="local-test-key"))
+    assert "local-test-key" not in repr(node.JudgeConfig("https://example.invalid/v1", "test", rubric="Score correctness from 0 to 100.", api_key="local-test-key"))
+
+
+def test_insufficient_evidence_is_failure_and_later_samples_continue(inputs):
+    prompts, hyp, _ = inputs
+    seen = []
+
+    def caller(config, messages):
+        seen.append(messages)
+        if len(seen) == 1:
+            return {"score": None, "reason": "The audio fact has no textual evidence."}
+        return {"score": 80, "reason": "Supported by context."}
+
+    trace = node.score_slu_judge(
+        hyp_file=str(hyp), prompt_jsonl=str(prompts),
+        config=node.JudgeConfig("https://example.invalid/v1", "fake", rubric="Score 0 to 100."),
+        caller=caller,
+    )
+    assert len(seen) == 2
+    assert '"score": null' in seen[0][0]["content"]
+    assert trace.details["sample_results"][0] == {
+        "key": "a", "status": "failed", "error_code": "insufficient_evidence",
+        "score": None, "reason": "The audio fact has no textual evidence.",
+    }
+    assert trace.details["sample_results"][1]["score"] == 80
+    assert trace.details["result"]["score"] is None
+    assert trace.details["result"]["num_failed"] == 1
+    assert trace.details["result"]["num_scored"] == 1
+
+
+def test_null_score_requires_reason():
+    with pytest.raises(node.JudgeError, match="invalid_judgment_reason"):
+        node.validate_answer_judgment({"score": None, "reason": " "})

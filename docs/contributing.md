@@ -29,6 +29,27 @@ category applies.
 - Do not commit model weights, checkpoints, `.venv`, caches, reports, secrets,
   or private absolute paths.
 
+## Documentation Coverage
+
+Include documentation updates in the same PR as the behavior they describe:
+
+- For a new task, update the supported-task tables in both root READMEs,
+  the [task index](./tasks/README.md), the public task guide, and the
+  task-local README. The homepage tables must cover all supported tasks and
+  link to their guides; only list capabilities implemented in that branch.
+- For a new metric or route, update the existing task guide and task-local
+  README, the affected node READMEs, and the metric summary in both root
+  READMEs when applicable. State the exact route, required inputs, units,
+  aggregation, defaults, environment/checkpoint setup, and material limits.
+- For changed behavior, correct examples and explanations that depend on it.
+  Keep the English and Chinese homepage descriptions consistent. Link to
+  detailed task/node guides instead of duplicating every route on the homepage.
+- After route changes, regenerate `docs/pipeline_catalog.jsonl` and the atlas
+  artifacts with the commands below. Do not edit generated listings by hand.
+- In the PR description, identify the documentation updated, or explain why
+  no documentation changes are needed. Check relative links and run any new
+  command examples against the selected route.
+
 ## Common Checks
 
 Run focused tests for the changed task, then broader checks when shared code is
@@ -71,7 +92,7 @@ sure-eval env setup --pipeline pipeline.json --dry-run --json
 
 Required PR checks are intentionally portable: they must pass on a clean GitHub
 runner without model checkpoints, secrets, or node-local virtual environments.
-They run `ruff`, whitespace checks, catalog freshness, package build/install
+They run `ruff`, whitespace checks, catalog/atlas freshness, package build/install
 smoke tests, CLI smoke tests, and the test suite excluding checkpoint-backed
 environment assertions.
 
@@ -83,7 +104,8 @@ git diff --check
 uv run --extra dev --extra audio --extra canonical pytest -q --ignore=tests/test_evaluation_env_check.py
 uv run --extra dev --extra audio --extra canonical pytest tests/test_evaluation_env_check.py -q -k "in_process or pip_runtime or dry_run or doctor or cache_dir or se_pip_runtime_nodes_are_declared"
 uv run --extra dev --extra canonical python scripts/generate_pipeline_catalog.py
-git diff --exit-code docs/pipeline_catalog.jsonl
+python scripts/generate_pipeline_atlas.py
+git diff --exit-code docs/pipeline_catalog.jsonl docs/atlas/index.html docs/atlas/pipeline_atlas.svg docs/atlas/pipeline_atlas_dark.svg
 ```
 
 Checkpoint-backed node-local checks live in the optional Heavy Nodes workflow.

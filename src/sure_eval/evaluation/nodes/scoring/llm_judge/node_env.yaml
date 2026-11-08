@@ -1,8 +1,8 @@
 id: scoring/llm_judge
 group: text-judge
 runtime:
-  type: pip
-  optional: true
+  type: in_process
+  optional: false
   gpu: false
 verify:
   imports:

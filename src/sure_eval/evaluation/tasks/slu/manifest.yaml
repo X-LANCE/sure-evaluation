@@ -23,6 +23,7 @@ input_contracts:
 pipeline_nodes:
   - normalization/prompt_norm
   - scoring/classify
+  - scoring/llm_judge
 notes:
   - LLM Judge evaluates textual questions/answers, not raw audio, and requires explicit judge configuration.
   - Prompt choices may be structured or parsed from legacy prompt text.

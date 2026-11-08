@@ -1,4 +1,4 @@
-"""SLU task route built from prompt normalization and classification scoring."""
+"""SLU accuracy and optional textual LLM Judge routes."""
 
 from __future__ import annotations
 

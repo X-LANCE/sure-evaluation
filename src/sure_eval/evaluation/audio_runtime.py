@@ -56,8 +56,9 @@ def build_se_runtime(
     """Build injected runtime objects needed by ``evaluate_se_samples``."""
 
     requested = {_normalize_se_metric(metric) for metric in metrics}
+    dns_components = requested & {"dnsmos_p808", "dnsmos_sig", "dnsmos_bak"}
     runtime = _build_audio_runtime(
-        metrics=tuple(requested & {"dnsmos", "wv-mos", "utmos"}),
+        metrics=tuple((requested & {"dnsmos", "wv-mos", "utmos"}) | ({"dnsmos"} if dns_components else set())),
         language="n/a",
         device=device,
         cache_dir=Path(cache_dir) if cache_dir else _default_cache_dir("se"),
@@ -72,10 +73,44 @@ def build_se_runtime(
         from sure_eval.evaluation.nodes.scoring._full_reference_audio import STOIProvider
 
         reference_providers["stoi"] = STOIProvider()
+    if "estoi" in requested:
+        from sure_eval.evaluation.nodes.scoring._full_reference_audio import ESTOIProvider
+
+        reference_providers["estoi"] = ESTOIProvider()
+    if "lsd" in requested:
+        from sure_eval.evaluation.nodes.scoring._full_reference_audio import LSDProvider
+
+        reference_providers["lsd"] = LSDProvider()
+    if "lps" in requested:
+        from sure_eval.evaluation.nodes.scoring.lps.node import LPSProvider
+
+        reference_providers["lps"] = LPSProvider(device=device)
     if "pesq" in requested:
         from sure_eval.evaluation.nodes.scoring._full_reference_audio import PESQProvider
 
         reference_providers["pesq"] = PESQProvider()
+    if "nsrmr" in requested:
+        from sure_eval.evaluation.nodes.scoring.nsrmr.node import NSRMRProvider
+
+        runtime["mos_providers"]["nsrmr"] = NSRMRProvider()
+    squim_metrics = requested & {"squim_stoi", "squim_pesq", "squim_si_sdr"}
+    if squim_metrics:
+        from sure_eval.evaluation.nodes.scoring._squim_objective import SQUIMObjectiveProvider
+
+        squim_provider = SQUIMObjectiveProvider(device=device)
+        for metric in squim_metrics:
+            runtime["mos_providers"][metric] = squim_provider
+    nisqa_metrics = requested & {"nisqa_mos", "nisqa_noi", "nisqa_dis", "nisqa_col", "nisqa_loud"}
+    if nisqa_metrics:
+        from sure_eval.evaluation.nodes.scoring._nisqa_dim import NISQADIMProvider
+
+        nisqa_provider = NISQADIMProvider(device=device)
+        for metric in nisqa_metrics:
+            runtime["mos_providers"][metric] = nisqa_provider
+    if dns_components:
+        dns_provider = runtime["mos_providers"]["dnsmos"]
+        for metric in dns_components:
+            runtime["mos_providers"][metric] = dns_provider
     return {
         "mos_providers": runtime["mos_providers"],
         "reference_providers": reference_providers,
@@ -136,7 +171,11 @@ def _build_audio_runtime(
                 node_dir=NODES_ROOT / "transcription" / "qwen3_asr_1_7b",
                 device=device,
             )
-        elif transcription_node_id not in {None, "transcription/paraformer_zh", "transcription/whisper_large_v3"}:
+        elif transcription_node_id not in {
+            None,
+            "transcription/paraformer_zh",
+            "transcription/whisper_large_v3",
+        }:
             raise ValueError(f"Unsupported semantic transcription node: {transcription_node_id}")
         elif language.lower().startswith(("zh", "cmn", "yue")):
             from sure_eval.evaluation.nodes.transcription.common.providers import (
@@ -184,7 +223,7 @@ def _build_audio_runtime(
                 device=device,
             )
 
-    mos_metrics = requested & {"dnsmos", "wv-mos", "utmos"}
+    mos_metrics = requested & {"dnsmos", "wv-mos", "utmos", "komos"}
     if mos_metrics:
         from sure_eval.evaluation.nodes.scoring.common.node_local import NodeLocalMOSProvider
 
@@ -206,6 +245,12 @@ def _build_audio_runtime(
                 node_dir=NODES_ROOT / "scoring" / "utmos",
                 device=device,
             )
+        if "komos" in mos_metrics:
+            mos_providers["komos"] = NodeLocalMOSProvider(
+                node_id="scoring/komos",
+                node_dir=NODES_ROOT / "scoring" / "komos",
+                device=device,
+            )
 
     return {
         "transcribers": transcribers,
@@ -225,6 +270,11 @@ def _normalize_se_metric(metric: str) -> str:
         "si-sdr": "si-sdr",
         "wvmos": "wv-mos",
         "wv-mos": "wv-mos",
+        **{name.replace("_", "-"): name for name in (
+            "dnsmos_p808", "dnsmos_sig", "dnsmos_bak", "squim_stoi",
+            "squim_pesq", "squim_si_sdr", "nisqa_mos", "nisqa_noi",
+            "nisqa_dis", "nisqa_col", "nisqa_loud",
+        )},
     }.get(normalized, normalized)
 
 

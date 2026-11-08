@@ -37,7 +37,7 @@ def case(tmp_path):
     paths["hyp.txt"].write_text("a\tA\n", encoding="utf-8")
     paths["ref.txt"].write_text("a\tA\n", encoding="utf-8")
     paths["config.json"].write_text(json.dumps({
-        "base_url": "https://example.invalid/v1", "model": "fake",
+        "rubric": "Score correctness against the supplied evidence from 0 to 100.", "base_url": "https://example.invalid/v1", "model": "fake",
         "api_key": "audit-fake-secret",
     }), encoding="utf-8")
     spec = build_pipeline_spec("slu", metric="llm_judge")
@@ -198,8 +198,9 @@ API_BODIES += [
     (completion('{}'), "invalid_judgment_fields"),
     (completion('{"score":4}'), "invalid_judgment_fields"),
     (completion('{"score":4,"reason":"ok","extra":1}'), "invalid_judgment_fields"),
-    *[(completion(json.dumps({"score": score, "reason": "ok"})), "invalid_judgment_score")
-      for score in [True, 0, 6, 2.5, "5", None]],
+    *[(completion(json.dumps({"score": score, "reason": "ok"})),
+       "insufficient_evidence" if score is None else "invalid_judgment_score")
+      for score in [True, -1, 101, "5", None, float("nan"), float("inf"), float("-inf")]],
     *[(completion(json.dumps({"score": 4, "reason": reason})), "invalid_judgment_reason")
       for reason in ["", "  ", None, 1]],
 ]
@@ -216,7 +217,10 @@ def test_malformed_api_response_preserves_report_and_fails_cli(case, tmp_path, m
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert report["score"] is None
     sample = report["pipeline_trace"][0]["details"]["sample_results"][0]
-    assert sample == {"key": "a", "status": "failed", "error_code": expected}
+    expected_sample = {"key": "a", "status": "failed", "error_code": expected}
+    if expected == "insufficient_evidence":
+        expected_sample.update(score=None, reason="ok")
+    assert sample == expected_sample
     assert "audit-fake-secret" not in (out / "report.json").read_text(encoding="utf-8")
     print(json.dumps({"sample_error": sample}))
 

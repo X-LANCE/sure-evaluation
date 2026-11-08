@@ -18,6 +18,8 @@ internal_stages:
 used_by:
   - SLU textual question-answer quality
 notes:
+  - User rubric is required; finite numeric scores range from 0 to 100, higher is better, without rounding.
+  - Scores are rubric-specific judgments, not accuracy percentages.
   - Consumes hyp and prompt_jsonl with optional aligned ref text, and returns answer-quality scores.
   - Does not consume raw audio.
   - Judge model and inference parameters are supplied by configuration.
