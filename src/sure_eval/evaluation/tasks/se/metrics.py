@@ -103,6 +103,131 @@ class _FullReferenceMetric:
         return None
 
 
+class _NoReferenceMetric(_FullReferenceMetric):
+    """Provider-backed SE metric whose score does not use the paired reference."""
+
+    def calculate_batch(
+        self,
+        predictions: list[str],
+        references: list[str],
+        **kwargs: Any,
+    ) -> MetricResult:
+        if len(predictions) != len(references):
+            raise ValueError("predictions and references must have the same length")
+        if not predictions:
+            raise ValueError("at least one prediction is required")
+        provider = self._provider()
+        rows = [
+            self._normalize_provider_result(provider(prediction, "", **kwargs))
+            for prediction in predictions
+        ]
+        scores = [float(row[self.source.score_key]) for row in rows]
+        return MetricResult(
+            metric_name=self.metric_name,
+            score=fmean(scores),
+            details={
+                "num_samples": len(rows),
+                "score_key": self.source.score_key,
+                "source": self.source.as_dict(),
+                "per_sample": rows,
+            },
+        )
+
+
+class SQUIMMOSMetric(_NoReferenceMetric):
+    """TorchAudio SQUIM Subjective predicted MOS."""
+
+    metric_name = "squim_mos"
+    source = MetricSource(
+        primary_reference="TorchAudio SQUIM Subjective",
+        method="Predicted MOS from enhanced speech and a staged clean non-matching reference.",
+        score_key="squim_mos",
+        higher_is_better=True,
+        dependencies=("torch", "torchaudio"),
+    )
+
+    def _default_provider(self) -> ScoreProvider:
+        from sure_eval.evaluation.nodes.scoring._squim_subjective import SQUIMSubjectiveProvider
+
+        return SQUIMSubjectiveProvider()
+
+    def _find_score_key(self, row: dict[str, Any]) -> str | None:
+        return next((key for key in ("squim_mos", "mos", "score") if key in row), None)
+
+
+class SCOREQMetric(_NoReferenceMetric):
+    """Natural-speech no-reference SCOREQ predicted MOS."""
+
+    metric_name = "scoreq"
+    source = MetricSource(
+        primary_reference="Ragano, Skoglund, and Hines, SCOREQ, NeurIPS 2024",
+        method="Natural-speech no-reference SCOREQ MOS prediction.",
+        score_key="scoreq",
+        higher_is_better=True,
+        dependencies=("onnxruntime", "torchaudio"),
+    )
+
+    def _default_provider(self) -> ScoreProvider:
+        from sure_eval.evaluation.nodes.scoring._scoreq import SCOREQProvider
+
+        return SCOREQProvider()
+
+    def _find_score_key(self, row: dict[str, Any]) -> str | None:
+        return next((key for key in ("scoreq", "mos", "score") if key in row), None)
+
+
+def _sq_ast_source(dimension: str) -> MetricSource:
+    return MetricSource(
+        primary_reference="Wardah et al., SQ-AST, Interspeech 2025",
+        method=f"Improved SQ-AST {dimension} prediction from 48 kHz enhanced audio; 4 * sigmoid + 1.",
+        score_key=f"sq_ast_{dimension}",
+        higher_is_better=True,
+        dependencies=("torch", "torchaudio", "transformers"),
+    )
+
+
+class _SQASTMetric(_NoReferenceMetric):
+    dimension = "mos"
+
+    def _default_provider(self) -> ScoreProvider:
+        from sure_eval.evaluation.nodes.scoring._sq_ast import SQASTProvider
+
+        return SQASTProvider(dimensions=(self.dimension,))
+
+    def _find_score_key(self, row: dict[str, Any]) -> str | None:
+        return next((key for key in (self.source.score_key, "score") if key in row), None)
+
+
+class SQASTMOSMetric(_SQASTMetric):
+    metric_name = "sq_ast_mos"
+    dimension = "mos"
+    source = _sq_ast_source(dimension)
+
+
+class SQASTNOIMetric(_SQASTMetric):
+    metric_name = "sq_ast_noi"
+    dimension = "noi"
+    source = _sq_ast_source(dimension)
+
+
+class SQASTDISMetric(_SQASTMetric):
+    metric_name = "sq_ast_dis"
+    dimension = "dis"
+    source = _sq_ast_source(dimension)
+
+
+class SQASTCOLMetric(_SQASTMetric):
+    metric_name = "sq_ast_col"
+    dimension = "col"
+    source = _sq_ast_source(dimension)
+
+
+class SQASTLOUDMetric(_SQASTMetric):
+    metric_name = "sq_ast_loud"
+    dimension = "loud"
+    source = _sq_ast_source(dimension)
+
+
 class SISDRMetric(_FullReferenceMetric):
     """Scale-invariant SDR in dB for enhanced speech against clean speech."""
 
@@ -157,4 +282,15 @@ class PESQMetric(_FullReferenceMetric):
         return PESQProvider()
 
 
-__all__ = ["PESQMetric", "SISDRMetric", "STOIMetric"]
+__all__ = [
+    "PESQMetric",
+    "SCOREQMetric",
+    "SQASTCOLMetric",
+    "SQASTDISMetric",
+    "SQASTLOUDMetric",
+    "SQASTMOSMetric",
+    "SQASTNOIMetric",
+    "SISDRMetric",
+    "STOIMetric",
+    "SQUIMMOSMetric",
+]

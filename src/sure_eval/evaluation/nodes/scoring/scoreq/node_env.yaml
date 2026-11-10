@@ -1,0 +1,29 @@
+id: scoring/scoreq
+group: se-no-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: optional
+packages:
+  - name: numpy
+    version: ">=1.24.0"
+  - name: onnxruntime
+    version: ">=1.16.0"
+  - name: torch
+    version: ">=2.2.0"
+  - name: torchaudio
+    version: ">=2.2.0"
+models:
+  - id: scoreq/adapt_nr_telephone.onnx
+    provider: url
+    auto_download: true
+    source: https://zenodo.org/records/15739280/files/adapt_nr_telephone.onnx
+    target: checkpoints/adapt_nr_telephone.onnx
+    env: SURE_SE_SCOREQ_CHECKPOINT
+    md5: 00f512e40db4e447df54d73150efbebe
+verify:
+  imports: [numpy, onnxruntime, torch, torchaudio]
+  files:
+    - path: adapt_nr_telephone.onnx
+      relative_to_env: SURE_SE_SCOREQ_CHECKPOINT
+      default_base: checkpoints

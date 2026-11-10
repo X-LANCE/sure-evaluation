@@ -1,0 +1,29 @@
+id: scoring/squim_mos
+group: se-no-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: optional
+packages:
+  - name: torch
+    version: "==2.2.0"
+  - name: torchaudio
+    version: "==2.2.0"
+models:
+  - id: torchaudio/squim_subjective_bvcc_daps
+    provider: manual
+    target: checkpoints/squim_subjective_bvcc_daps.pth
+    env: SURE_SE_SQUIM_SUBJECTIVE_CKPT
+  - id: staged-clean-non-matching-reference
+    provider: manual
+    target: checkpoints/squim_subjective_nmr.wav
+    env: SURE_SE_SQUIM_SUBJECTIVE_NMR
+verify:
+  imports: [torch, torchaudio]
+  files:
+    - path: squim_subjective_bvcc_daps.pth
+      relative_to_env: SURE_SE_SQUIM_SUBJECTIVE_CKPT
+      default_base: checkpoints
+    - path: squim_subjective_nmr.wav
+      relative_to_env: SURE_SE_SQUIM_SUBJECTIVE_NMR
+      default_base: checkpoints

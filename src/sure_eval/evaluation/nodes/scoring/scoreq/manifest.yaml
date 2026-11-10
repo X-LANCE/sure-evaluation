@@ -1,0 +1,11 @@
+id: scoring/scoreq
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.scoreq.node
+metric: scoreq
+backend: scoreq-natural-nr
+used_by: [SE no-reference quality prediction]
+notes: [Natural-speech no-reference SCOREQ MOS; higher is better.]

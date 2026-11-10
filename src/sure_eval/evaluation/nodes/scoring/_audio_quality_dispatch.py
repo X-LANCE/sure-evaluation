@@ -78,6 +78,26 @@ def score_mos_metric(
         from sure_eval.evaluation.nodes.scoring.squim_si_sdr import score_squim_si_sdr
 
         return score_squim_si_sdr(rows, provider=provider)
+    if metric_name == "squim_mos":
+        from sure_eval.evaluation.nodes.scoring.squim_mos import score_squim_mos
+
+        return score_squim_mos(rows, provider=provider)
+    if metric_name == "scoreq":
+        from sure_eval.evaluation.nodes.scoring.scoreq import score_scoreq
+
+        return score_scoreq(rows, provider=provider)
+    if metric_name.startswith("sq_ast_"):
+        dimension = metric_name.removeprefix("sq_ast_")
+        if dimension not in {"mos", "noi", "dis", "col", "loud"}:
+            raise ValueError(f"unsupported SQ-AST dimension: {dimension}")
+        from sure_eval.evaluation.nodes.scoring._sq_ast_node import score_sq_ast
+
+        return score_sq_ast(
+            rows,
+            provider=provider,
+            dimension=dimension,
+            node_id=f"scoring/sq_ast_{dimension}",
+        )
     if metric_name == "nisqa_mos":
         from sure_eval.evaluation.nodes.scoring.nisqa_mos import score_nisqa_mos
 

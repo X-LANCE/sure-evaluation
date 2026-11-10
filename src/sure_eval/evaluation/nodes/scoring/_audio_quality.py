@@ -52,6 +52,10 @@ def _score_key(metric_name: str) -> str:
         return "mos"
     if metric_name == "utmos":
         return "utmos"
+    if metric_name == "squim_mos":
+        return "squim_mos"
+    if metric_name == "scoreq":
+        return "scoreq"
     return "score"
 
 
@@ -60,6 +64,8 @@ def _fallback_score_key(row: dict[str, Any], metric_name: str) -> str | None:
         "dnsmos": ("ovrl", "overall", "P808_MOS", "p808_mos", "mos", "score"),
         "wv-mos": ("mos", "wv_mos", "score"),
         "utmos": ("utmos", "mos", "score"),
+        "squim_mos": ("squim_mos", "mos", "score"),
+        "scoreq": ("scoreq", "mos", "score"),
     }.get(metric_name, ("score", "avg_score", "avg score", "hyp_score", "similarity", "sim", "cosine_similarity"))
     for key in candidates:
         if key in row:

@@ -1,0 +1,11 @@
+id: scoring/squim_mos
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.squim_mos.node
+metric: squim_mos
+backend: torchaudio-squim-subjective-bvcc-daps
+used_by: [SE no-reference quality prediction]
+notes: [Predicted subjective MOS using a staged non-matching clean reference; higher is better.]

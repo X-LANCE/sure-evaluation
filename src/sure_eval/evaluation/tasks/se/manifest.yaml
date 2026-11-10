@@ -12,6 +12,13 @@ implemented_metrics:
   - squim_stoi
   - squim_pesq
   - squim_si_sdr
+  - squim_mos
+  - scoreq
+  - sq_ast_mos
+  - sq_ast_noi
+  - sq_ast_dis
+  - sq_ast_col
+  - sq_ast_loud
   - nisqa_mos
   - nisqa_noi
   - nisqa_dis
@@ -169,6 +176,62 @@ input_contracts:
     alignment_key: sample_id
     aggregation: mean
     main_report: true
+  scoring/squim_mos:
+    purpose: se_no_reference_predicted_subjective_mos
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/scoreq:
+    purpose: se_no_reference_predicted_scoreq_mos
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/sq_ast_mos:
+    purpose: se_no_reference_predicted_sq_ast_overall_quality
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/sq_ast_noi:
+    purpose: se_no_reference_predicted_sq_ast_noisiness
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/sq_ast_dis:
+    purpose: se_no_reference_predicted_sq_ast_discontinuity
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/sq_ast_col:
+    purpose: se_no_reference_predicted_sq_ast_coloration
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/sq_ast_loud:
+    purpose: se_no_reference_predicted_sq_ast_loudness
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
   scoring/nisqa_mos:
     purpose: se_no_reference_predicted_overall_mos
     required_roles: [enhanced_audio]
@@ -228,6 +291,13 @@ pipeline_nodes:
     squim_stoi: scoring/squim_stoi
     squim_pesq: scoring/squim_pesq
     squim_si_sdr: scoring/squim_si_sdr
+    squim_mos: scoring/squim_mos
+    scoreq: scoring/scoreq
+    sq_ast_mos: scoring/sq_ast_mos
+    sq_ast_noi: scoring/sq_ast_noi
+    sq_ast_dis: scoring/sq_ast_dis
+    sq_ast_col: scoring/sq_ast_col
+    sq_ast_loud: scoring/sq_ast_loud
     nisqa_mos: scoring/nisqa_mos
     nisqa_noi: scoring/nisqa_noi
     nisqa_dis: scoring/nisqa_dis

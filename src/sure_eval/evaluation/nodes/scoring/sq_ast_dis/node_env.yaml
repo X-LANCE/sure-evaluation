@@ -1,0 +1,43 @@
+id: scoring/sq_ast_dis
+group: se-no-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: optional
+packages:
+  - name: torch
+    version: "==2.2.0"
+  - name: torchaudio
+    version: "==2.2.0"
+  - name: transformers
+    version: "==4.40.2"
+models:
+  - id: sq-ast/dis.pth
+    provider: manual
+    source: https://tubcloud.tu-berlin.de/s/K9owXP3Fnj4pnJg
+    target: checkpoints/weights/dis.pth
+    env: SURE_SE_SQ_AST_DIS_CKPT
+    license: unknown
+    sha256: ef05d8ebfb7ce53b360e954a48d2408d40fa197e04b47579befb3652a70c74e6
+  - id: MIT/ast-finetuned-audioset-10-10-0.4593
+    provider: manual
+    source: https://huggingface.co/MIT/ast-finetuned-audioset-10-10-0.4593
+    revision: f826b80d28226b62986cc218e5cec390b1096902
+    target: checkpoints/ast-base
+    env: SURE_SE_SQ_AST_BASE_MODEL_DIR
+    license: bsd-3-clause
+verify:
+  imports: [torch, torchaudio, transformers]
+  files:
+    - path: dis.pth
+      relative_to_env: SURE_SE_SQ_AST_DIS_CKPT
+      default_base: checkpoints/weights
+    - path: config.json
+      relative_to_env: SURE_SE_SQ_AST_BASE_MODEL_DIR
+      default_base: checkpoints/ast-base
+    - path: preprocessor_config.json
+      relative_to_env: SURE_SE_SQ_AST_BASE_MODEL_DIR
+      default_base: checkpoints/ast-base
+    - path: model.safetensors
+      relative_to_env: SURE_SE_SQ_AST_BASE_MODEL_DIR
+      default_base: checkpoints/ast-base
