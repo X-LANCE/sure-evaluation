@@ -207,7 +207,7 @@ packages and Git.
 | RIR estimation | NPM, RT30/RT60 MAE, DRR/C50/C80/EDC, IACC full/early/late, ITD/ILD/IPD/DOA errors | [RIR estimation](docs/tasks/rir.md) |
 | TSE | SI-SDR, speaker similarity, DNSMOS, WV-MOS, UTMOS, CER, WER | [TSE](docs/tasks/tse.md) |
 | Classification / SER / GR | Accuracy | [Classification](docs/tasks/classification.md) |
-| SLU | Accuracy | [SLU](docs/tasks/slu.md) |
+| SLU | Accuracy, LLM Judge | [SLU](docs/tasks/slu.md) |
 | KWS | Per-keyword/macro recall at 0.1 FA/hour, trigger latency; optional ROC/AUC | [KWS](docs/tasks/kws.md) |
 | VAD | F1, false alarm, miss, NIST DCF, ROC AUC | [VAD](docs/tasks/vad.md) |
 | DOA | MAE, RMSE, threshold accuracy, localization precision/recall/F1 | [DOA](docs/tasks/doa.md) |

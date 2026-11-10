@@ -196,7 +196,7 @@ node-local 虚拟环境只保留在本地，不会进入安装包或 Git。
 | RIR estimation | NPM、RT30/RT60 MAE、DRR/C50/C80/EDC、IACC 全窗/早期/晚期、ITD/ILD/IPD/DOA 误差 | [RIR estimation](docs/tasks/rir.md) |
 | TSE | SI-SDR、说话人相似度、DNSMOS、WV-MOS、UTMOS、CER、WER | [TSE](docs/tasks/tse.md) |
 | Classification / SER / GR | Accuracy | [Classification](docs/tasks/classification.md) |
-| SLU | Accuracy | [SLU](docs/tasks/slu.md) |
+| SLU | Accuracy、LLM Judge | [SLU](docs/tasks/slu.md) |
 | KWS | 固定 FA/hour 下逐词 recall、Macro recall（默认 0.1 次/小时）、触发延时，可选 ROC/AUC | [KWS](docs/tasks/kws.md) |
 | VAD | F1、false alarm、miss、NIST DCF、ROC AUC | [VAD](docs/tasks/vad.md) |
 | DOA | MAE、RMSE、阈值准确率、定位 precision/recall/F1 | [DOA](docs/tasks/doa.md) |
