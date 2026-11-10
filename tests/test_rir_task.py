@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 from sure_eval.cli import app
 from sure_eval.evaluation.scripts import describe_pipeline
 from sure_eval.evaluation.scripts import run_task
+from sure_eval.evaluation.tasks.rir import metrics as rir_metrics
 from sure_eval.evaluation.tasks.rir.pipeline import METRICS, evaluate_rir_samples
 from sure_eval.evaluation.tasks.rir.types import RIRSample
 
@@ -186,6 +187,69 @@ def test_rir_cli_routes_describe_and_run_preserve_pipeline_id(tmp_path: Path) ->
     assert report["details"]["results"]["rir_npm"]["score"] < 0
 
 
+def test_rir_cli_jnd_routes_describe_run_report(tmp_path: Path) -> None:
+    reference = tmp_path / "reference.wav"
+    prediction = tmp_path / "prediction.wav"
+    _write_long_rir(reference)
+    _write_long_rir(prediction, 0.9)
+    samples_jsonl = tmp_path / "samples.jsonl"
+    samples_jsonl.write_text(
+        json.dumps(
+            {
+                "sample_id": "rir-jnd-001",
+                "prediction_rir": prediction.name,
+                "reference_rir": reference.name,
+                "sample_rate": 16000,
+                "channel_layout": "binaural_lr",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    pipeline_json = tmp_path / "jnd_pipeline.json"
+    runner = CliRunner()
+    routes = runner.invoke(app, ["metric", "routes", "rir", "--metric", "rir_edt_jnd_mae", "--json"])
+    assert routes.exit_code == 0, routes.stdout
+    assert json.loads(routes.stdout)["default_pipeline_id"] == (
+        "rir.any.rir_edt_jnd_mae.rir_edt_jnd_mae_v1"
+    )
+    described = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "rir",
+            "--metric",
+            "rir_edt_jnd_mae",
+            "--output",
+            str(pipeline_json),
+            "--json",
+        ],
+    )
+    assert described.exit_code == 0, described.stdout
+    run = runner.invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_json),
+            "--samples-jsonl",
+            str(samples_jsonl),
+            "--output-dir",
+            str(tmp_path / "jnd_run"),
+            "--validate-env",
+            "--json",
+        ],
+    )
+    assert run.exit_code == 0, run.stdout
+    report = json.loads((tmp_path / "jnd_run" / "report.json").read_text())
+    assert report["pipeline_id"] == "rir.any.rir_edt_jnd_mae.rir_edt_jnd_mae_v1"
+    result = report["details"]["results"]["rir_edt_jnd_mae"]
+    assert result["unit"] == "x_jnd"
+    assert result["per_sample"][0]["channels"]
+
+
 def test_rir_metrics_run_on_small_fixture(tmp_path: Path) -> None:
     reference = tmp_path / "reference.wav"
     prediction = tmp_path / "prediction.wav"
@@ -314,6 +378,63 @@ def test_rir_npm_is_scale_invariant_and_reports_db(tmp_path: Path) -> None:
     result = report.details["results"]["rir_npm"]
     assert result["score"] < -80
     assert result["unit"] == "dB"
+
+
+def test_rir_npm_uses_union_support_for_unequal_lengths(tmp_path: Path) -> None:
+    reference = np.zeros((1, 96), dtype=np.float64)
+    reference[0, 72] = 1.0
+    reference[0, 73] = 0.25
+    prediction = np.zeros((1, 112), dtype=np.float64)
+    prediction[0, 80] = 0.9
+    prediction[0, 81] = 0.225
+    np.save(tmp_path / "reference.npy", reference)
+    np.save(tmp_path / "prediction.npy", prediction)
+    sample = RIRSample(
+        prediction_rir=str(tmp_path / "prediction.npy"),
+        reference_rir=str(tmp_path / "reference.npy"),
+        sample_id="rir-npm-unequal",
+        sample_rate=16000,
+    )
+    result = evaluate_rir_samples([sample], metrics=("rir_npm",))
+    assert result.score < -100.0
+    assert result.details["results"]["rir_npm"]["per_sample"][0]["alignment_support"] == "union"
+
+
+def test_rir_protocol_decay_windows_and_rt30_extrapolation() -> None:
+    sample_rate = 1000
+    edc_db = np.linspace(0.0, -60.0, 1001)
+    assert np.isclose(rir_metrics._fit_rt60(edc_db, sample_rate, 30.0), 1.0)
+
+    signal = np.zeros(2000, dtype=np.float64)
+    signal[60:100] = 0.5
+    signal[100] = 1.0
+    signal[1100] = 0.1
+    direct, reverberant = rir_metrics._drr_energies(signal, 16000, 2.5)
+    assert np.isclose(10.0 * np.log10(direct / reverberant), 30.41392685158225)
+
+    # Clarity uses [peak, peak + window), while DRR is the symmetric window.
+    clarity_direct, clarity_late = rir_metrics._clarity_energies(signal, 1000, 0.05)
+    assert np.isclose(clarity_direct, 1.0)
+    assert np.isclose(clarity_late, 0.01)
+
+
+def test_rir_spatial_correlation_uses_overlap_normalization() -> None:
+    left = np.array([0.0, 1.0, 2.0, 0.0, 0.0], dtype=np.float64)
+    right = np.array([0.0, 0.0, 1.0, 2.0, 0.0], dtype=np.float64)
+    lags, values = rir_metrics._cross_correlation(left, right, 1000, max_lag_ms=2.0)
+    expected = []
+    for lag in range(-2, 3):
+        if lag < 0:
+            x, y = left[-lag:], right[: len(right) + lag]
+        elif lag > 0:
+            x, y = left[: len(left) - lag], right[lag:]
+        else:
+            x, y = left, right
+        x = x - x.mean()
+        y = y - y.mean()
+        expected.append(np.sum(x * y) / (np.linalg.norm(x) * np.linalg.norm(y)))
+    assert np.array_equal(lags, np.arange(-2, 3))
+    assert np.allclose(values, expected)
 
 
 def test_rir_channel_branches_and_binaural_metrics(tmp_path: Path) -> None:
@@ -592,6 +713,8 @@ def test_rir_iso3382_metrics_cover_mono_binaural_and_multichannel(tmp_path: Path
         assert result["valid_samples"] == 1
         assert len(result["per_sample"][0]["channels"]) == channels
         assert result["within_one_jnd_percent"] == pytest.approx(100.0)
+        assert result["absolute_unit"] in {"seconds", "dB", "ratio", "ms"}
+        assert result["jnd_threshold_value"] > 0
 
 
 def test_rir_iso3382_routes_describe_and_preserve_jnd_details() -> None:
@@ -682,7 +805,7 @@ def test_rir_report_preserves_geometry_and_truncation_inputs(tmp_path: Path) -> 
     assert row["channel_layout"] == "binaural_lr"
     assert row["channel_count"] == 2
     assert (row["prediction_samples"], row["reference_samples"], row["paired_samples"]) == (2048, 4096, 2048)
-    assert row["length_policy"] == "truncate_to_shorter"
+    assert row["length_policy"] == "acoustic_truncate_to_shorter; npm_union_support"
     assert report.details["results"]["rir_npm"]["score"] < -100
 
 

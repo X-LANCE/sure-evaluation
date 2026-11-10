@@ -125,7 +125,7 @@ def validate_rir_samples(
             "prediction_samples": prediction.shape[0],
             "reference_samples": reference.shape[0],
             "paired_samples": min(prediction.shape[0], reference.shape[0]),
-            "length_policy": "truncate_to_shorter",
+            "length_policy": "acoustic_truncate_to_shorter; npm_union_support",
         })
     return rows
 
@@ -189,12 +189,14 @@ def rir_npm(samples: list[RIRSample]) -> MetricResult:
     values = []
     per_sample = []
     for sample in samples:
-        prediction, reference, _ = _pair(sample)
+        # NPM uses the full union support. Other acoustic metrics use the
+        # shared-duration pair returned by ``_pair`` below.
+        prediction, reference, _ = _load_pair(sample)
         reference_energy = float(np.sum(reference * reference))
         prediction_energy = float(np.sum(prediction * prediction))
         if reference_energy <= _EPSILON or prediction_energy <= _EPSILON:
             raise ValueError(f"NPM requires nonzero RIR energy for {sample.sample_id}")
-        max_lag = min(256, prediction.shape[0] - 1, reference.shape[0] - 1)
+        max_lag = min(256, max(prediction.shape[0], reference.shape[0]) - 1)
         fft_length = reference.shape[0] + prediction.shape[0] - 1
         correlation = np.zeros(fft_length, dtype="float64")
         for channel in range(reference.shape[1]):
@@ -202,13 +204,12 @@ def rir_npm(samples: list[RIRSample]) -> MetricResult:
             prediction_fft = np.fft.rfft(prediction[:, channel], fft_length)
             full = np.fft.irfft(reference_fft * np.conj(prediction_fft), fft_length)
             correlation += np.concatenate((full[-(prediction.shape[0] - 1) :], full[: reference.shape[0]]))
-        center = reference.shape[0] - 1
-        # The legacy loop indexes negative lags first; reverse the standard
-        # correlation slice to preserve both scores and reported lag signs.
-        lag_values = correlation[center - max_lag : center + max_lag + 1][::-1]
+        lag_axis = np.arange(-(prediction.shape[0] - 1), reference.shape[0])
+        lag_mask = np.abs(lag_axis) <= max_lag
+        lag_values = correlation[lag_mask]
         best_index = int(np.argmax(np.abs(lag_values)))
         correlation_max = float(abs(lag_values[best_index]))
-        best_lag = int(best_index - max_lag)
+        best_lag = int(lag_axis[lag_mask][best_index])
         cosine_sq = min(1.0, correlation_max * correlation_max / (reference_energy * prediction_energy))
         score = float(10.0 * np.log10(max(1.0 - cosine_sq, 1e-20)))
         values.append(score)
@@ -219,6 +220,7 @@ def rir_npm(samples: list[RIRSample]) -> MetricResult:
             "prediction_energy": prediction_energy,
             "best_lag_samples": best_lag,
             "projection_cosine_sq": cosine_sq,
+            "alignment_support": "union",
             "unit": "dB",
         })
     return MetricResult(
@@ -251,43 +253,34 @@ def _acoustic_pair(prediction: np.ndarray, reference: np.ndarray, sample_rate: i
     return predicted, target
 
 
+def _edc_db(signal: np.ndarray) -> np.ndarray:
+    """Return the normalized Schroeder energy-decay curve in dB."""
+    x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
+    if x.size == 0:
+        return np.asarray([], dtype="float64")
+    energy = np.cumsum((x**2)[::-1])[::-1]
+    reference_energy = max(float(energy[0]), _EPSILON)
+    return 10.0 * np.log10(np.maximum(energy / reference_energy, _EPSILON))
+
+
 def _fit_rt60(edc_db: np.ndarray, sample_rate: int, decay_db: float) -> float:
+    """Fit the selected EDC interval and extrapolate its slope to 60 dB."""
     upper_db = -5.0
     lower_db = -(5.0 + decay_db)
-    below_upper = np.flatnonzero(edc_db <= upper_db)
-    below_lower = np.flatnonzero(edc_db <= lower_db)
-    if below_upper.size == 0 or below_lower.size == 0:
+    indices = np.flatnonzero(
+        np.isfinite(edc_db) & (edc_db <= upper_db) & (edc_db >= lower_db)
+    )
+    if indices.size < 2:
         return float("nan")
-    start = int(below_upper[0])
-    end = int(below_lower[0])
-    if end - start < 4:
-        return float("nan")
-    times = np.arange(start, end + 1, dtype="float64") / sample_rate
-    slope, _ = np.polyfit(times, edc_db[start : end + 1], 1)
+    times = indices.astype("float64") / sample_rate
+    slope, _ = np.polyfit(times, edc_db[indices], 1)
     return float(-60.0 / slope) if slope < 0.0 else float("nan")
 
 
-def _fit_decay_duration(edc_db: np.ndarray, sample_rate: int, decay_db: float) -> float:
-    """Return the measured time between -5 dB and -(5+decay_db) dB."""
-    upper_db = -5.0
-    lower_db = -(5.0 + decay_db)
-    below_upper = np.flatnonzero(edc_db <= upper_db)
-    below_lower = np.flatnonzero(edc_db <= lower_db)
-    if below_upper.size == 0 or below_lower.size == 0:
-        return float("nan")
-    start = int(below_upper[0])
-    end = int(below_lower[0])
-    if end - start < 4:
-        return float("nan")
-    return float(end - start) / float(sample_rate)
-
-
 def _rt60(signal: np.ndarray, sample_rate: int) -> float:
-    x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
-    if x.size < 4:
+    if np.asarray(signal).size < 4:
         return float("nan")
-    energy = np.cumsum((x**2)[::-1])[::-1]
-    edc_db = 10.0 * np.log10(energy / (energy[0] + _EPSILON) + _EPSILON)
+    edc_db = _edc_db(signal)
     return next(
         (value for value in (_fit_rt60(edc_db, sample_rate, 30.0), _fit_rt60(edc_db, sample_rate, 20.0)) if np.isfinite(value)),
         float("nan"),
@@ -295,12 +288,10 @@ def _rt60(signal: np.ndarray, sample_rate: int) -> float:
 
 
 def _rt30(signal: np.ndarray, sample_rate: int) -> float:
-    x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
-    if x.size < 4:
+    if np.asarray(signal).size < 4:
         return float("nan")
-    energy = np.cumsum((x**2)[::-1])[::-1]
-    edc_db = 10.0 * np.log10(energy / (energy[0] + _EPSILON) + _EPSILON)
-    return _fit_decay_duration(edc_db, sample_rate, 30.0)
+    edc_db = _edc_db(signal)
+    return _fit_rt60(edc_db, sample_rate, 30.0)
 
 
 def _decay_metric(samples: list[RIRSample], *, metric_name: str, field_name: str, estimator) -> MetricResult:
@@ -372,12 +363,8 @@ def rt60_mae(samples: list[RIRSample]) -> MetricResult:
 
 
 def _edc_curve_stats(prediction: np.ndarray, reference: np.ndarray, floor_db: float = -40.0) -> tuple[float, float, float, int]:
-    def curve(signal: np.ndarray) -> np.ndarray:
-        energy = np.cumsum((signal**2)[::-1])[::-1]
-        return 10.0 * np.log10(energy / (energy[0] + _EPSILON) + _EPSILON)
-
-    predicted = curve(np.asarray(prediction, dtype="float64"))
-    target = curve(np.asarray(reference, dtype="float64"))
+    predicted = _edc_db(prediction)
+    target = _edc_db(reference)
     length = min(predicted.size, target.size)
     if length < 4:
         return float("nan"), float("nan"), float("nan"), 0
@@ -515,11 +502,10 @@ def _broadband_edt(signal: np.ndarray, sample_rate: int) -> list[float]:
     values = []
     for channel in range(signal.shape[1]):
         x = signal[:, channel]
-        energy = np.cumsum((x**2)[::-1])[::-1]
-        if not energy.size or float(energy[0]) <= _EPSILON:
+        edc_db = _edc_db(x)
+        if not edc_db.size or not np.isfinite(edc_db).any():
             values.append(float("nan"))
             continue
-        edc_db = 10.0 * np.log10(np.maximum(energy / energy[0], _EPSILON))
         below = np.flatnonzero(edc_db <= -10.0)
         if not below.size or int(below[0]) < 4:
             values.append(float("nan"))
@@ -570,6 +556,8 @@ def _iso3382_jnd_mae(samples: list[RIRSample], *, metric_name: str, parameter: s
     pass_values = []
     rows = []
     threshold_description = _ISO3382_JND_THRESHOLDS[parameter]
+    threshold_value = {"edt": 0.05, "c80": 1.0, "d50": 0.05, "ts": 10.0}[parameter]
+    absolute_unit = {"edt": "seconds", "c80": "dB", "d50": "ratio", "ts": "ms"}[parameter]
     for sample in samples:
         prediction, reference, rate = _pair(sample)
         prediction_values = _iso3382_parameters(prediction, rate)
@@ -581,7 +569,7 @@ def _iso3382_jnd_mae(samples: list[RIRSample], *, metric_name: str, parameter: s
         for channel in range(prediction.shape[1]):
             predicted = prediction_values[channel][parameter]
             target = reference_values[channel][parameter]
-            threshold = 0.05 * target if parameter == "edt" else {"c80": 1.0, "d50": 0.05, "ts": 10.0}[parameter]
+            threshold = threshold_value * target if parameter == "edt" else threshold_value
             if not all(np.isfinite(value) for value in (predicted, target, threshold)) or threshold <= _EPSILON:
                 raise ValueError(f"{parameter.upper()} JND could not be estimated for {sample.sample_id}, channel {channel}")
             error = abs(predicted - target)
@@ -596,7 +584,7 @@ def _iso3382_jnd_mae(samples: list[RIRSample], *, metric_name: str, parameter: s
         absolute_values.append(sample_absolute)
         pass_values.append(bool(all(passes)))
         rows.append({"sample_id": sample.sample_id, "score": sample_jnd, "absolute_error": sample_absolute, "jnd_error": sample_jnd, "within_one_jnd": bool(all(passes)), "channels": channel_rows})
-    return MetricResult(metric_name, _mean(values), {"per_sample": rows, "higher_is_better": False, "unit": "x_jnd", "jnd_parameter": parameter, "jnd_threshold": threshold_description, "absolute_mae": float(np.mean(absolute_values)), "mean_jnd": _mean(values), "within_one_jnd_percent": 100.0 * float(np.mean(pass_values)), "valid_samples": len(values), "total_samples": len(samples), "channel_aggregation": "arithmetic_mean; all channels required for within-one-JND pass", "frequency_bands_hz": list(_ISO3382_CENTRES_HZ), "frequency_averaging": "arithmetic_mean_per_channel"})
+    return MetricResult(metric_name, _mean(values), {"per_sample": rows, "higher_is_better": False, "unit": "x_jnd", "jnd_parameter": parameter, "jnd_threshold": threshold_description, "jnd_threshold_value": threshold_value, "absolute_mae": float(np.mean(absolute_values)), "absolute_unit": absolute_unit, "mean_jnd": _mean(values), "within_one_jnd_percent": 100.0 * float(np.mean(pass_values)), "valid_samples": len(values), "total_samples": len(samples), "channel_aggregation": "arithmetic_mean; all channels required for within-one-JND pass", "frequency_bands_hz": list(_ISO3382_CENTRES_HZ), "frequency_averaging": "arithmetic_mean_per_channel"})
 
 
 def rir_edt_jnd_mae(samples: list[RIRSample]) -> MetricResult:
@@ -615,18 +603,34 @@ def rir_ts_jnd_mae(samples: list[RIRSample]) -> MetricResult:
     return _iso3382_jnd_mae(samples, metric_name="rir_ts_jnd_mae", parameter="ts")
 
 
-def _early_late(signal: np.ndarray, rate: int, window_ms: float) -> tuple[float, float]:
+def _clarity_energies(signal: np.ndarray, rate: int, window_ms: float) -> tuple[float, float]:
     x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
     peak = int(np.argmax(np.abs(x)))
     window = max(1, int(round(rate * window_ms / 1000.0)))
-    end = min(x.size, peak + window + 1)
-    if end >= x.size:
+    split = peak + window
+    if split >= x.size:
         return float("nan"), float("nan")
-    early = float(np.sum(x[peak:end] ** 2))
-    late = float(np.sum(x[end:] ** 2))
+    early = float(np.sum(x[peak:split] ** 2))
+    late = float(np.sum(x[split:] ** 2))
     if early <= _EPSILON or late <= _EPSILON:
         return float("nan"), float("nan")
     return early, late
+
+
+def _drr_energies(signal: np.ndarray, rate: int, window_ms: float) -> tuple[float, float]:
+    """Return direct and reverberant energy in the symmetric direct window."""
+    x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
+    peak = int(np.argmax(np.abs(x)))
+    window = max(1, int(round(rate * window_ms / 1000.0)))
+    lo = max(0, peak - window)
+    hi = min(x.size, peak + window + 1)
+    if hi >= x.size:
+        return float("nan"), float("nan")
+    direct = float(np.sum(x[lo:hi] ** 2))
+    reverberant = float(np.sum(x[hi:] ** 2))
+    if direct <= _EPSILON or reverberant <= _EPSILON:
+        return float("nan"), float("nan")
+    return direct, reverberant
 
 
 def _clarity_mae(samples: list[RIRSample], window_ms: float) -> MetricResult:
@@ -638,8 +642,8 @@ def _clarity_mae(samples: list[RIRSample], window_ms: float) -> MetricResult:
         channel_rows = []
         for channel in range(prediction.shape[1]):
             predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
-            pred_early, pred_late = _early_late(predicted, rate, window_ms)
-            ref_early, ref_late = _early_late(target, rate, window_ms)
+            pred_early, pred_late = _clarity_energies(predicted, rate, window_ms)
+            ref_early, ref_late = _clarity_energies(target, rate, window_ms)
             if not np.isfinite(pred_early + pred_late + ref_early + ref_late):
                 raise ValueError(f"C{int(window_ms)} could not be estimated for {sample.sample_id}, channel {channel}")
             prediction_value = 10.0 * np.log10(pred_early / pred_late)
@@ -665,8 +669,8 @@ def rir_drr_mae(samples: list[RIRSample]) -> MetricResult:
         channel_rows = []
         for channel in range(prediction.shape[1]):
             predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
-            pred_early, pred_late = _early_late(predicted, rate, 2.5)
-            ref_early, ref_late = _early_late(target, rate, 2.5)
+            pred_early, pred_late = _drr_energies(predicted, rate, 2.5)
+            ref_early, ref_late = _drr_energies(target, rate, 2.5)
             if not np.isfinite(pred_early + pred_late + ref_early + ref_late):
                 raise ValueError(f"DRR could not be estimated for {sample.sample_id}, channel {channel}")
             pred_drr = 10.0 * np.log10(pred_early / pred_late)
@@ -698,23 +702,34 @@ def _cross_correlation(
     length = min(left.size, right.size)
     if length < 2:
         return np.array([], dtype="int64"), np.array([], dtype="float64")
-    left = left[:length] - float(np.mean(left[:length]))
-    right = right[:length] - float(np.mean(right[:length]))
-    # FFT correlation keeps the same full-correlation ordering as
-    # ``np.correlate`` while avoiding its quadratic cost on 1-second RIRs.
-    fft_length = left.size + right.size - 1
-    correlation_fft = np.fft.irfft(
-        np.fft.rfft(left, fft_length) * np.conj(np.fft.rfft(right, fft_length)),
-        fft_length,
-    )
-    correlation = np.concatenate((correlation_fft[-(right.size - 1) :], correlation_fft[: left.size]))
-    lags = np.arange(-len(left) + 1, len(left))
     max_lag = max(0, int(round(sample_rate * max_lag_ms / 1000.0)))
-    mask = np.abs(lags) <= max_lag
-    denominator = float(np.linalg.norm(left) * np.linalg.norm(right))
-    if denominator <= _EPSILON:
+    lags = []
+    correlations = []
+    # Rec-BIR normalizes each lag over its overlapping support, including a
+    # fresh mean for that support. This is different from one full-length
+    # denominator and avoids edge-dependent IACC/ITD bias.
+    for lag in range(-max_lag, max_lag + 1):
+        if lag < 0:
+            x = left[-lag:]
+            y = right[: length + lag]
+        elif lag > 0:
+            x = left[: length - lag]
+            y = right[lag:]
+        else:
+            x = left
+            y = right
+        if x.size < 2:
+            continue
+        x = x - float(np.mean(x))
+        y = y - float(np.mean(y))
+        denominator = float(np.linalg.norm(x) * np.linalg.norm(y))
+        if denominator <= _EPSILON:
+            continue
+        lags.append(lag)
+        correlations.append(float(np.sum(x * y) / denominator))
+    if not correlations:
         raise ValueError("cross-correlation requires nonzero centered energy in both channels")
-    return lags[mask], correlation[mask] / denominator
+    return np.asarray(lags, dtype="int64"), np.asarray(correlations, dtype="float64")
 
 
 def _iacc(signal: np.ndarray, sample_rate: int, window: str = "full") -> float:

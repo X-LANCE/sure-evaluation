@@ -5,10 +5,11 @@ Rows use `prediction_rir` and `reference_rir` paths and align by `sample_id`.
 The audio files may be WAV/FLAC or NumPy `.npy`/`.npz` arrays. NumPy arrays
 must provide `sample_rate` in the row because they do not carry an embedded
 rate. The files must have matching sample rates and channel counts; spatial
-metrics require at least two channels. Each pair is truncated to the shorter
-file before scoring. NPM searches one common lag within +/-256 samples;
-acoustic metrics begin each channel near its own strongest impulse; spatial
-metrics use the channel signals as provided. Rows must refer to the same
+metrics require at least two channels. NPM searches one common lag within
+`+/-256` samples over the full union support. Acoustic metrics independently
+start each prediction/reference channel 2.5 ms before its strongest impulse,
+then use their shared duration; spatial metrics keep the original channel
+timing. Rows must refer to the same
 source, room, microphone positions, and channel order. Each metric averages
 its per-sample scores with equal weight. Every `per_sample` entry records
 reference-side and prediction-side values with the unit. Multi-channel
@@ -24,8 +25,8 @@ diagnostic can be undefined. Reports retain input paths, effective sample
 rate, channel layout/count, geometry metadata, original lengths, and the
 paired length in `details.rows`.
 
-The truncation policy measures only the shared duration; it does not penalize
-a missing tail. ITD and DOA retain the fixed +/-1 ms search window, including
+The acoustic shared-duration policy measures only the common duration; it does
+not penalize a missing tail. ITD and DOA retain the fixed +/-1 ms search window, including
 for microphone arrays. Array delays outside that window are not supported by
 this protocol and the reported angle is not a general array-localization
 estimate. Choose recordings compatible with these limits before comparing
@@ -45,7 +46,7 @@ used when it is omitted.
 | Metric | Meaning | Direction |
 |---|---|---|
 | `rir_npm` | normalized projection misalignment in dB | lower is better |
-| `rt30_mae` | measured 30 dB decay-time error in seconds | lower is better |
+| `rt30_mae` | RT30 error in seconds, with the -5 to -35 dB EDC slope extrapolated to 60 dB | lower is better |
 | `rt60_mae` | absolute RT60 error in seconds | lower is better |
 | `rir_drr_mae` | direct-to-reverberant ratio error in dB | lower is better |
 | `rir_c50_mae` | C50 error in dB | lower is better |
@@ -81,8 +82,8 @@ sample within 20 dB of the peak, filter at 500 Hz and 1 kHz with a zero-phase
 Butterworth octave-band filter, fit the initial 0 to -10 dB Schroeder decay,
 extrapolate to 60 dB, average the two band values per channel, and report
 seconds of absolute error. `rir_edt_broadband_mae` is an optional strict atomic
-route. It performs the same decay fit on the full-band signal with an independent
-channel onset and does not apply a JND threshold. It is not part of the
+route. It performs the same decay fit on the full-band signal with one
+broadband onset shared by the RIR's channels and does not apply a JND threshold. It is not part of the
 leaderboard or JND bundle because some measured RIRs cross -10 dB within fewer
 than four samples, which is insufficient for a meaningful broadband EDT fit.
 
@@ -101,6 +102,11 @@ order Butterworth prototype and zero-phase filtering; IEC 61260 certification,
 measured background levels, source calibration, and auditorium measurement
 conditions are not claimed. Existing `rir_edc_mae` remains an energy-curve
 error in dB and must not be interpreted as EDT.
+
+The JND routes are the ISO-parameter benchmark subset. The base `rir_c50_mae`
+and `rir_c80_mae` routes are broadband Rec-BIR comparison metrics, while NPM,
+DRR, EDC, and the spatial metrics are model-evaluation extensions; none of
+these routes is a complete ISO 3382 auditorium measurement report.
 
 For cross-channel base evaluation, the curated bundle is:
 

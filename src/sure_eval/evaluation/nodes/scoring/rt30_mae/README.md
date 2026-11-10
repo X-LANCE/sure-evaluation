@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Reports the absolute error of the measured 30 dB reverberation decay time.
+Reports the absolute error of the RT30 decay slope extrapolated to a 60 dB
+reverberation time.
 
 ## Task Scenarios
 
@@ -23,9 +24,9 @@ rows include predicted and reference RT30 and per-channel absolute errors.
 ## Versioned Computation
 
 Node `scoring/rt30_mae`, version `v1`, starts each channel 2.5 ms before its
-strongest impulse, computes the Schroeder energy decay, and
-measures the time between -5 dB and -35 dB. The metric averages channel errors
-within each sample and then averages samples equally.
+strongest impulse, computes the Schroeder energy decay, fits -5 to -35 dB, and
+extrapolates its slope to 60 dB. The metric averages channel errors within
+each sample and then averages samples equally.
 
 ## Runtime and Assets
 
