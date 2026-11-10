@@ -27,9 +27,9 @@ then averages samples equally.
 ## Versioned Computation
 
 Node `scoring/rir_drr_mae`, version `v1`, starts each channel 2.5 ms before
-its strongest impulse. It divides energy from the strongest impulse through
-the following 2.5 ms by later energy, converts the ratio with `10*log10`,
-and compares prediction with reference.
+its strongest impulse. It divides energy in the symmetric window from 2.5 ms
+before through 2.5 ms after the strongest impulse by later energy, converts
+the ratio with `10*log10`, and compares prediction with reference.
 
 ## Runtime and Assets
 

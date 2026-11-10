@@ -1,0 +1,12 @@
+id: scoring/rir_edt_m_mae
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: rir_samples_jsonl
+output_schema: rir_edt_m_mae_score
+implementation: sure_eval.evaluation.tasks.rir.metrics.rir_edt_m_mae
+metric: rir_edt_m_mae
+backend: scipy-rir
+internal_stages: [audio_load, direct_onset, octave_band_filter, edt_fit, mean_aggregation]
+used_by: [RIR room acoustics]
+notes: [Lower is better. Unit is seconds. Arithmetic mean of 500 Hz and 1 kHz octave-band EDT per channel.]

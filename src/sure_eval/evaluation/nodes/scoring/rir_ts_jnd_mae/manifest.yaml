@@ -1,0 +1,12 @@
+id: scoring/rir_ts_jnd_mae
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: rir_samples_jsonl
+output_schema: rir_ts_jnd_mae_score
+implementation: sure_eval.evaluation.tasks.rir.metrics.rir_ts_jnd_mae
+metric: rir_ts_jnd_mae
+backend: scipy-rir
+internal_stages: [audio_load, direct_onset, octave_band_filter, centre_time_fit, jnd_normalization, mean_aggregation]
+used_by: [RIR ISO 3382 JND]
+notes: [Lower is better. Unit is x_jnd. Supports one or more channels. Ts JND is 10 ms.]

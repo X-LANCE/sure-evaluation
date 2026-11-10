@@ -28,9 +28,11 @@ score is the equal-weight mean of sample scores.
 ## Versioned Computation
 
 Node `scoring/rir_npm`, version `v1`, searches one common lag across channels
-within +/-256 samples. It maximizes the absolute summed cross-correlation,
-then reports `10 * log10(max(1 - cosine_sq, 1e-20))`. The reference and
-prediction energies normalize `cosine_sq`, making the result scale invariant.
+within +/-256 samples on the full union support (the shorter RIR is not
+silently used as the scoring duration). It maximizes the absolute summed
+cross-correlation, then reports `10 * log10(max(1 - cosine_sq, 1e-20))`. The
+reference and prediction energies normalize `cosine_sq`, making the result
+scale invariant.
 
 ## Runtime and Assets
 
