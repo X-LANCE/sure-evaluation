@@ -1,0 +1,11 @@
+id: scoring/sq_ast_noi
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.sq_ast_noi.node
+metric: sq_ast_noi
+backend: sq-ast-improved-weights
+used_by: [SE no-reference quality prediction]
+notes: [SQ-AST noisiness prediction on a 1-5 scale; higher is better.]

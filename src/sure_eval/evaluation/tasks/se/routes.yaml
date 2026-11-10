@@ -136,6 +136,64 @@ routes:
     input_contract: scoring/squim_si_sdr
     executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
   -
+    metric: squim_mos
+    aliases:
+      - squim-mos
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.squim_mos.squim_mos_v1
+    nodes:
+      - scoring/squim_mos
+    input_contract: scoring/squim_mos
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: scoreq
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.scoreq.scoreq_v1
+    nodes:
+      - scoring/scoreq
+    input_contract: scoring/scoreq
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: sq_ast_mos
+    aliases: [sqast-mos, sq-ast-mos]
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.sq_ast_mos.sq_ast_mos_v1
+    nodes: [scoring/sq_ast_mos]
+    input_contract: scoring/sq_ast_mos
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: sq_ast_noi
+    aliases: [sqast-noi, sq-ast-noi]
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.sq_ast_noi.sq_ast_noi_v1
+    nodes: [scoring/sq_ast_noi]
+    input_contract: scoring/sq_ast_noi
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: sq_ast_dis
+    aliases: [sqast-dis, sq-ast-dis]
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.sq_ast_dis.sq_ast_dis_v1
+    nodes: [scoring/sq_ast_dis]
+    input_contract: scoring/sq_ast_dis
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: sq_ast_col
+    aliases: [sqast-col, sq-ast-col]
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.sq_ast_col.sq_ast_col_v1
+    nodes: [scoring/sq_ast_col]
+    input_contract: scoring/sq_ast_col
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: sq_ast_loud
+    aliases: [sqast-loud, sq-ast-loud]
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.sq_ast_loud.sq_ast_loud_v1
+    nodes: [scoring/sq_ast_loud]
+    input_contract: scoring/sq_ast_loud
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
     metric: nisqa_mos
     family: no_reference_quality_prediction
     pipeline_id: se.any.nisqa_mos.nisqa_mos_v1

@@ -153,9 +153,17 @@ def test_se_samples_jsonl_loader_validates_full_reference_roles(tmp_path: Path) 
 
 def test_se_metric_definitions_are_registry_metrics() -> None:
     from sure_eval.evaluation.registry import MetricRegistry
-    from sure_eval.evaluation.tasks.se.metrics import PESQMetric, SISDRMetric, STOIMetric
+    from sure_eval.evaluation.tasks.se.metrics import (
+        PESQMetric,
+        SCOREQMetric,
+        SISDRMetric,
+        STOIMetric,
+        SQUIMMOSMetric,
+    )
 
     assert isinstance(MetricRegistry.get_metric("si-sdr"), SISDRMetric)
     assert isinstance(MetricRegistry.get_metric("sisdr"), SISDRMetric)
     assert isinstance(MetricRegistry.get_metric("stoi"), STOIMetric)
     assert isinstance(MetricRegistry.get_metric("pesq"), PESQMetric)
+    assert isinstance(MetricRegistry.get_metric("squim_mos"), SQUIMMOSMetric)
+    assert isinstance(MetricRegistry.get_metric("scoreq"), SCOREQMetric)

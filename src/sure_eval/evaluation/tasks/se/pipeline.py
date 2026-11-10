@@ -23,7 +23,7 @@ from sure_eval.evaluation.pipeline_identity import (
 from sure_eval.evaluation.tasks.se.types import SESample
 
 _ZIP_SENTINEL = object()
-_MOS_METRICS = {"dnsmos", "dnsmos_p808", "dnsmos_sig", "dnsmos_bak", "wv-mos", "utmos", "nsrmr", "squim_stoi", "squim_pesq", "squim_si_sdr", "nisqa_mos", "nisqa_noi", "nisqa_dis", "nisqa_col", "nisqa_loud"}
+_MOS_METRICS = {"dnsmos", "dnsmos_p808", "dnsmos_sig", "dnsmos_bak", "wv-mos", "utmos", "nsrmr", "squim_stoi", "squim_pesq", "squim_si_sdr", "squim_mos", "scoreq", "nisqa_mos", "nisqa_noi", "nisqa_dis", "nisqa_col", "nisqa_loud", "sq_ast_mos", "sq_ast_noi", "sq_ast_dis", "sq_ast_col", "sq_ast_loud"}
 _FULL_REFERENCE_METRICS = {"si-sdr", "stoi", "estoi", "lsd", "pesq", "lps"}
 _DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
 _NEW_METRIC_METADATA = {
@@ -37,6 +37,13 @@ _NEW_METRIC_METADATA = {
     "squim_stoi": {"unit": "predicted_stoi", "higher_is_better": True},
     "squim_pesq": {"unit": "predicted_pesq", "higher_is_better": True},
     "squim_si_sdr": {"unit": "predicted_dB", "higher_is_better": True},
+    "squim_mos": {"unit": "predicted_mos", "higher_is_better": True},
+    "scoreq": {"unit": "predicted_mos", "higher_is_better": True},
+    "sq_ast_mos": {"unit": "predicted_mos", "higher_is_better": True},
+    **{
+        name: {"unit": "predicted_acr_score", "higher_is_better": True}
+        for name in ("sq_ast_noi", "sq_ast_dis", "sq_ast_col", "sq_ast_loud")
+    },
     **{
         name: {"unit": "predicted_mos", "higher_is_better": True}
         for name in ("nisqa_mos", "nisqa_noi", "nisqa_dis", "nisqa_col", "nisqa_loud")
@@ -288,6 +295,18 @@ def _normalize_metric(metric: str) -> str:
         "squim-stoi": "squim_stoi",
         "squim-pesq": "squim_pesq",
         "squim-si-sdr": "squim_si_sdr",
+        "squim-mos": "squim_mos",
+        "scoreq": "scoreq",
+        "sqast-mos": "sq_ast_mos",
+        "sqast-noi": "sq_ast_noi",
+        "sqast-dis": "sq_ast_dis",
+        "sqast-col": "sq_ast_col",
+        "sqast-loud": "sq_ast_loud",
+        "sq-ast-mos": "sq_ast_mos",
+        "sq-ast-noi": "sq_ast_noi",
+        "sq-ast-dis": "sq_ast_dis",
+        "sq-ast-col": "sq_ast_col",
+        "sq-ast-loud": "sq_ast_loud",
         "nisqa-mos": "nisqa_mos",
         "nisqa-noi": "nisqa_noi",
         "nisqa-dis": "nisqa_dis",
@@ -318,6 +337,13 @@ def _node_id_for_metric(metric_name: str) -> str:
         "squim_stoi": "scoring/squim_stoi",
         "squim_pesq": "scoring/squim_pesq",
         "squim_si_sdr": "scoring/squim_si_sdr",
+        "squim_mos": "scoring/squim_mos",
+        "scoreq": "scoring/scoreq",
+        "sq_ast_mos": "scoring/sq_ast_mos",
+        "sq_ast_noi": "scoring/sq_ast_noi",
+        "sq_ast_dis": "scoring/sq_ast_dis",
+        "sq_ast_col": "scoring/sq_ast_col",
+        "sq_ast_loud": "scoring/sq_ast_loud",
         "nisqa_mos": "scoring/nisqa_mos",
         "nisqa_noi": "scoring/nisqa_noi",
         "nisqa_dis": "scoring/nisqa_dis",
