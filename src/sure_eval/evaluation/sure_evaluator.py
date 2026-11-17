@@ -655,14 +655,14 @@ class SUREEvaluator:
         
         with open(ref_file, 'r', encoding='utf-8') as f:
             for line in f:
-                parts = line.strip().split('\t', 1)
+                parts = line.rstrip('\r\n').split('\t', 1)
                 if len(parts) == 2:
                     key, text = parts
                     ref_lines.append(text)
         
         with open(hyp_file, 'r', encoding='utf-8') as f:
             for line in f:
-                parts = line.strip().split('\t', 1)
+                parts = line.rstrip('\r\n').split('\t', 1)
                 if len(parts) == 2:
                     key, text = parts
                     hyp_lines.append(text)

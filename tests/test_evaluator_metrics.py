@@ -72,3 +72,14 @@ def test_gr_keeps_rows_aligned_when_a_prediction_is_empty(tmp_path: Path) -> Non
     hyp = _write_rows(tmp_path / "hyp.txt", ["u1\t", "u2\tfemale"])
 
     assert SUREEvaluator(language="en").evaluate("GR", ref, hyp) == 0.5
+
+
+def test_s2tt_scores_an_empty_translation_in_place(tmp_path: Path) -> None:
+    ref = _write_rows(tmp_path / "ref.txt", ["u1\tthe cat sat on the mat", "u2\tit is raining today"])
+    full = _write_rows(tmp_path / "full.txt", ["u1\tthe cat sat on the mat", "u2\tit is raining today"])
+    hyp = _write_rows(tmp_path / "hyp.txt", ["u1\tthe cat sat on the mat", "u2\t"])
+
+    evaluator = SUREEvaluator(language="en")
+    result = evaluator.evaluate("S2TT", ref, hyp)
+
+    assert 0 < result["bleu"] < evaluator.evaluate("S2TT", ref, full)["bleu"]
