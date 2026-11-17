@@ -18,6 +18,7 @@ from zipfile import ZipFile
 SCORER_VERSION = 'openbench-integration-0.1'
 SESSION_ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]*')
 MAX_ZIP_TEXT = 64 * 1024 * 1024
+TRACKS = {'D1', 'R1'}
 
 
 def require(condition, message):
@@ -45,6 +46,7 @@ def spans(values, duration):
 def load_sessions(path):
     """Read ``sessions.json``. Returns the declared track and validated sessions."""
     config = json.loads(Path(path).read_text(encoding='utf-8'))
+    require(config.get('track') in TRACKS, f"sessions.json track must be one of {sorted(TRACKS)}")
     sessions = config['sessions']
     require(isinstance(sessions, dict) and sessions, 'Expected at least one reference session')
     for session, meta in sessions.items():

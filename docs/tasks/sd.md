@@ -105,9 +105,10 @@ Inputs:
 }
 ```
 
-`uem` is optional; the whole recording is scored without it. The run fails
-if a session is missing or unknown, or a row is malformed or outside the
-recording.
+`track` must be `D1` or `R1` and is copied to the report; check it against the
+leaderboard. `uem` is optional; the whole recording is scored without it. The
+run fails if a session is missing or unknown, or a row is malformed or outside
+the recording.
 
 DER: collar 0, overlap scored, one speaker mapping per session over its UEM.
 Missed, false-alarm and confusion time are summed over sessions and divided by

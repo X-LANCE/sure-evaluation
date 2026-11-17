@@ -16,7 +16,7 @@ SA_ASR_EAR1 = "sa_asr.zh.cpcer.conversion_sa_asr_ear1_submission_v1.ear1_norm_v1
 
 
 def _expected(example: str) -> dict:
-    return json.loads((EAR1 / example / "expected.json").read_text())
+    return json.loads((EAR1 / example / "expected.json").read_text(encoding="utf-8"))
 
 
 def _run_sd(tmp_path, *, hyp=None, sessions=None):
@@ -42,7 +42,7 @@ def _run_sa_asr(tmp_path):
 
 
 def _report(tmp_path) -> dict:
-    return json.loads((tmp_path / "out" / "report.json").read_text())
+    return json.loads((tmp_path / "out" / "report.json").read_text(encoding="utf-8"))
 
 
 def test_default_sd_and_sa_asr_routes_are_unchanged():
@@ -134,6 +134,18 @@ def test_sd_ear1_rejects_submission_that_omits_a_session(tmp_path):
         _run_sd(tmp_path, hyp=incomplete)
 
 
+@pytest.mark.parametrize("track", [None, "X", "d1"])
+def test_ear1_rejects_sessions_without_a_valid_track(tmp_path, track):
+    config = json.loads((EAR1 / "esd" / "reference" / "sessions.json").read_text(encoding="utf-8"))
+    config.pop("track")
+    if track is not None:
+        config["track"] = track
+    sessions = tmp_path / "sessions.json"
+    sessions.write_text(json.dumps(config), encoding="utf-8")
+    with pytest.raises(ValueError, match="track must be one of"):
+        _run_sd(tmp_path, sessions=sessions)
+
+
 def test_sd_ear1_rejects_malformed_rttm_row(tmp_path):
     malformed = tmp_path / "malformed.zip"
     with zipfile.ZipFile(malformed, "w") as dst:
@@ -151,11 +163,11 @@ def test_ear1_norm_drops_rows_that_normalize_to_empty(tmp_path):
         {"session_id": "S", "speaker": "a", "start_time": 1.0, "end_time": 2.0, "words": "。。"},
     ]
     for name in ("ref.json", "hyp.json"):
-        (tmp_path / name).write_text(json.dumps(rows, ensure_ascii=False))
+        (tmp_path / name).write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
     ref, _, result = normalize_ear1_seglst_files(
         ref_file=str(tmp_path / "ref.json"), hyp_file=str(tmp_path / "hyp.json"), output_dir=tmp_path / "n"
     )
-    assert [row["words"] for row in json.loads(Path(ref).read_text())] == ["hello世界"]
+    assert [row["words"] for row in json.loads(Path(ref).read_text(encoding="utf-8"))] == ["hello世界"]
     assert result.details["segments"]["ref"] == {"input_segments": 2, "kept_segments": 1}
 
 

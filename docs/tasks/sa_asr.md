@@ -88,8 +88,9 @@ Inputs:
 - `--hyp-file`: submission ZIP with one `<session_id>.stm` per session at the
   root. An empty file means no output for that session.
 - `--ref-file`: directory with one reference `<session_id>.stm` per session.
-- `--sessions-file`: organizer `sessions.json`; per-session `exclude` lists
-  extra intervals to drop.
+- `--sessions-file`: organizer `sessions.json`. `track` must be `D1` or `R1`
+  and is copied to the report. Per-session `exclude` lists extra intervals to
+  drop.
 
 STM rows have six fields; the transcript is last:
 
