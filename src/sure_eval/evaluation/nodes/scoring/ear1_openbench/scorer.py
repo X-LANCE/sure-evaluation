@@ -4,7 +4,6 @@ from __future__ import annotations
 from collections import defaultdict
 import json
 import math
-from pathlib import Path
 import re
 import unicodedata
 from zipfile import ZipFile
@@ -175,5 +174,3 @@ def score(task, track, submission, reference_dir, backend='builtin', distance_ba
     value = sum(totals[key] for key in errors) / totals[denominator]
     return {'scorer_version': VERSION, 'task': task, 'track': track, 'metric': metric,
             'score': value, 'score_pct': 100 * value, 'session_count': len(sessions), 'counts': totals}
-
-

@@ -12,74 +12,6 @@ import importlib.util
 import math
 import unicodedata
 
-try:
-    from scipy.optimize import linear_sum_assignment as _scipy_linear_sum_assignment
-except ImportError:  # pragma: no cover - exercised only in minimal installs
-    _scipy_linear_sum_assignment = None
-
-
-def _linear_sum_assignment(costs):
-    """Return a minimum-cost assignment for a square matrix without SciPy.
-
-    EAR-1 uses square speaker matrices. This compact Hungarian implementation
-    keeps the builtin scorer self-contained; an optional SciPy installation is
-    not required for the standard backend.
-    """
-    n = len(costs)
-    if n == 0:
-        return [], []
-    if any(len(row) != n for row in costs):
-        raise ValueError("assignment matrix must be square")
-    u = [0.0] * (n + 1)
-    v = [0.0] * (n + 1)
-    p = [0] * (n + 1)
-    way = [0] * (n + 1)
-    for i in range(1, n + 1):
-        p[0] = i
-        j0 = 0
-        minv = [float("inf")] * (n + 1)
-        used = [False] * (n + 1)
-        while True:
-            used[j0] = True
-            i0 = p[j0]
-            delta = float("inf")
-            j1 = 0
-            for j in range(1, n + 1):
-                if used[j]:
-                    continue
-                current = float(costs[i0 - 1][j - 1]) - u[i0] - v[j]
-                if current < minv[j]:
-                    minv[j] = current
-                    way[j] = j0
-                if minv[j] < delta:
-                    delta, j1 = minv[j], j
-            for j in range(n + 1):
-                if used[j]:
-                    u[p[j]] += delta
-                    v[j] -= delta
-                else:
-                    minv[j] -= delta
-            j0 = j1
-            if p[j0] == 0:
-                break
-        while True:
-            j1 = way[j0]
-            p[j0] = p[j1]
-            j0 = j1
-            if j0 == 0:
-                break
-    assignment = [(p[j] - 1, j - 1) for j in range(1, n + 1)]
-    assignment.sort()
-    return [row for row, _ in assignment], [col for _, col in assignment]
-
-
-def _assignment(costs):
-    """Use SciPy's upstream assignment when available, otherwise fallback."""
-    if _scipy_linear_sum_assignment is not None:
-        rows, cols = _scipy_linear_sum_assignment(costs)
-        return list(rows), list(cols)
-    return _linear_sum_assignment(costs)
-
 
 def normalize_text(text: str) -> str:
     text = unicodedata.normalize('NFKC', text).lower()
@@ -169,6 +101,7 @@ def character_edit_counts(reference: str, hypothesis: str, backend: str) -> dict
 
 
 def cpcer(reference: dict[str, str], hypothesis: dict[str, str], distance_backend='auto') -> dict:
+    from scipy.optimize import linear_sum_assignment
     refs, hyps = sorted(reference), sorted(hypothesis)
     characters = sum(map(len, reference.values()))
     if not characters:
@@ -185,7 +118,7 @@ def cpcer(reference: dict[str, str], hypothesis: dict[str, str], distance_backen
     else:
         distances = [character_distance(r, h) for r, h in pairs]
     costs = [distances[i * count:(i + 1) * count] for i in range(count)]
-    rows, cols = _assignment(costs)
+    rows, cols = linear_sum_assignment(costs)
     assignment = []
     for i, j in zip(rows, cols):
         ref, hyp = pairs[i * count + j]
@@ -218,10 +151,12 @@ def der(reference: list[dict], hypothesis: list[dict], duration: float) -> dict:
     Global mapping maximizes co-occurrence duration; local errors use label
     multiplicities after that mapping. cpCER's text mapping is never used here.
     """
+    from scipy.optimize import linear_sum_assignment
     if not math.isfinite(duration) or duration <= 0:
         raise ValueError('DER requires a positive recording duration')
     events = defaultdict(list)
-    events[0.0]; events[duration]
+    events[0.0]
+    events[duration]
     labels = [set(), set()]
     clipped = [[], []]
     for side, rows in enumerate((reference, hypothesis)):
@@ -263,7 +198,7 @@ def der(reference: list[dict], hypothesis: list[dict], duration: float) -> dict:
         spans.append((length, r, h))
     mapping, assignment = {}, []
     if refs and hyps:
-        rows, cols = _assignment([[-value for value in row] for row in coincidence])
+        rows, cols = linear_sum_assignment([[-value for value in row] for row in coincidence])
         for i, j in zip(rows, cols):
             # Zero-coincidence pairs remain unmatched, as in HungarianMapper.
             if coincidence[i][j] > 0:

@@ -4,15 +4,27 @@ This node implements the EAR-1 OpenBench ESD-ON/DER and ESR-ON/cpCER
 submission contract. It validates the participant ZIP and organizer reference
 metadata, then returns pooled score counts. It does not run inference.
 
-The integrated default backend is an in-process scorer. When SciPy is
-available it uses SciPy's upstream Hungarian assignment implementation, which
-matches the standalone handoff. A small exact fallback keeps the default
-path runnable in a minimal SURE installation. The optional `agwer` backend
-requires the pinned dependencies from the external EAR-1 package.
+## Provenance
 
-The external handoff's `requirements.txt` is still required when running its
-standalone `score.py` directly. It is not automatically installed by SURE's
-`env setup` because the integrated default scorer can run without it.
+`scorer.py` and `metrics.py` are vendored from the EAR-1 organizer handoff
+`EAR1_OpenBench_Scoring` (`score.py` and `ear1_metrics.py`, scorer version
+`openbench-integration-0.1`; `ear1_metrics.py` is Git blob
+`2d2e578d6de56afe319603e7b0e0e56654f931c5` from `egs/ear1/local`). The SURE
+copy differs only in the package-relative import, the removed standalone CLI
+entry point, a `distance_backend=` keyword alias on `score()` and one
+lint-only line split. Scoring logic is unchanged. When the organizers publish a
+new scorer version, replace both files together and refresh
+`tests/fixtures/ear1_openbench/`. Scores are comparable only within one
+`scorer_version`.
+
+## Backends
+
+The default `builtin` backend runs in process. Speaker assignment uses SciPy's
+`linear_sum_assignment`, exactly as the standalone handoff does, so SciPy must
+be installed; `node_env.yaml` declares it for `--validate-env`. The optional
+`agwer` backend requires the pinned dependencies from the external EAR-1
+package (`requirements-scoring-fast.txt`). SURE's `env setup` does not install
+the handoff's requirement files.
 
 ## CLI
 
