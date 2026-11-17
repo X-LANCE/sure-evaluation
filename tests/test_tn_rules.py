@@ -41,3 +41,40 @@ def test_tn_en_rules_do_not_read_quotes_or_slashes_as_words() -> None:
 
     assert "inches" not in tn.asr_num2words('he said "hello" to me', "en", en_rules, debug=False)
     assert "slash" not in tn.asr_num2words("we need both and/or rules", "en", en_rules, debug=False)
+
+
+def _normalize_ref(tmp_path: Path, text: str, language: str) -> str:
+    from sure_eval.evaluation.core.types import KeyTextFiles
+    from sure_eval.evaluation.nodes.normalization.aispeech_norm import normalize_asr_files
+
+    ref_file = tmp_path / "ref.txt"
+    hyp_file = tmp_path / "hyp.txt"
+    ref_file.write_text(f"utt1\t{text}\n", encoding="utf-8")
+    hyp_file.write_text("utt1\tplaceholder\n", encoding="utf-8")
+    normalized, _ = normalize_asr_files(KeyTextFiles(ref_file=str(ref_file), hyp_file=str(hyp_file)), language=language)
+    try:
+        return Path(normalized.ref_file).read_text(encoding="utf-8")
+    finally:
+        Path(normalized.ref_file).unlink(missing_ok=True)
+        Path(normalized.hyp_file).unlink(missing_ok=True)
+
+
+def test_tn_en_node_applies_the_english_symbol_and_time_maps(tmp_path: Path) -> None:
+    assert _normalize_ref(tmp_path, "50% done", "en").split() == ["utt1", "fifty", "percent", "done"]
+    assert _normalize_ref(tmp_path, "see you at 10:00 a.m.", "en").split() == [
+        "utt1", "see", "you", "at", "ten", "oclock", "am"
+    ]
+
+
+def test_tn_zh_node_applies_the_chinese_symbol_map(tmp_path: Path) -> None:
+    assert _normalize_ref(tmp_path, "气温25℃", "zh") == "utt1\t气温二十五摄氏度\n"
+
+
+def test_asr_num2words_reads_the_language_directory_under_the_rules_root() -> None:
+    """SUREEvaluator passes the rules root, not a language directory."""
+
+    rules = default_map_dir()
+
+    assert tn.asr_num2words("50% done", "en", rules, debug=False) == " fifty  percent  done"
+    for language in ("zh", "zh_CN", "zh_cn"):
+        assert tn.asr_num2words("气温25℃", language, rules, debug=False) == "气温二十五摄氏度"

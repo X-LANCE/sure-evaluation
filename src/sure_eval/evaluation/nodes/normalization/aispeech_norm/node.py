@@ -131,16 +131,19 @@ def _load_num2words_maps(language: str, map_dir: str) -> tuple[list, list]:
     """Preload the map tables ``asr_num2words`` would otherwise re-read per call.
 
     Mirrors the function's own fallback lookup: non-digit ``<map_dir>/*.map``
-    files for text replacement, then ``<map_dir>/<language>/digit.map`` (or the
-    root ``digit.map``) for digit-by-digit conversion.
+    and ``<map_dir>/<base language>/*.map`` files for text replacement, then
+    ``<map_dir>/<language>/digit.map`` (or the root ``digit.map``) for
+    digit-by-digit conversion.
     """
 
     from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl.asr_simple_tn import (
         load_and_sort_map,
     )
 
+    map_files = glob.glob(os.path.join(map_dir, "*.map"))
+    map_files += glob.glob(os.path.join(map_dir, language.split("_")[0], "*.map"))
     other_map_sorted: list = []
-    for map_file in sorted(glob.glob(os.path.join(map_dir, "*.map"))):
+    for map_file in sorted(map_files):
         if os.path.basename(map_file) != "digit.map":
             other_map_sorted.extend(load_and_sort_map(map_file, language))
     other_map_sorted.sort(key=lambda pair: len(pair[0]), reverse=True)

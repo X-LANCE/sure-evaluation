@@ -50,6 +50,11 @@ as deletions. Non-empty lines without a tab are dropped and counted in
   - `punctuation_stripping`
   - `codeswitch_tokenization` and `language_split` for `cs`.
 
+Symbol, time, and currency maps are read from
+`normalization_impl/asr_simple_tn_rules/<language>/` (`zh_CN` reads `zh/`).
+The `cs` profile passes these maps only alphanumeric runs and single Chinese
+characters, which no current map key matches.
+
 Normalization map tables are loaded once per node call and shared across rows.
 This is a performance change only; scoring output is intended to remain
 legacy-compatible.
