@@ -103,7 +103,7 @@ def preprocess_zh_text(text):
     
     # 匹配中文数字的逐位读法（如"一零"、"一五"、"二零"等）
     # 只匹配2位中文数字，避免匹配更长或更短的
-    text = re.sub(r'([一二三四五六七八九零])([一二三四五六七八九零])', normalize_chinese_digits, text)
+    text = re.sub(r'(?<![一二三四五六七八九零〇])([一二三四五六七八九零])([一二三四五六七八九零])(?![一二三四五六七八九零〇])', normalize_chinese_digits, text)
     
     # 1. 阿拉伯数字转中文数字（处理时间、年龄等场景）
     def arabic_to_chinese_num(match):
