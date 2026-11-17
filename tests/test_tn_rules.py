@@ -17,6 +17,23 @@ def test_tn_zh_leaves_a_longer_digit_by_digit_run_alone() -> None:
     assert tn.preprocess_zh_text("二〇二三年") == "二〇二三年"
 
 
+def test_tn_maps_load_as_utf8_whatever_the_locale_encoding(monkeypatch) -> None:
+    """On Windows with a Chinese locale, open() without an encoding decodes files as GBK."""
+
+    import builtins
+
+    def locale_open(file, mode="r", *args, encoding=None, **kwargs):
+        if "b" not in mode and encoding is None:
+            encoding = "gbk"
+        return builtins.open(file, mode, *args, encoding=encoding, **kwargs)
+
+    monkeypatch.setattr(tn, "open", locale_open, raising=False)
+
+    pairs = tn.load_and_sort_map(str(Path(default_map_dir()) / "zh" / "symbol.map"), "zh")
+
+    assert ("℃", "摄氏度") in pairs
+
+
 def test_tn_en_rules_do_not_read_quotes_or_slashes_as_words() -> None:
     """Recognisers do not say "inches" for a quotation mark or "slash" for and/or."""
 

@@ -39,7 +39,7 @@ def get_n2w_map(map_file, language=None):
         print("error: no such map file: ", map_file, file=sys.stderr)
         return
     n2w_map = []
-    with open(map_file, 'r') as fm:
+    with open(map_file, 'r', encoding='utf-8') as fm:
         for line in fm:
             line = re.sub(r'\s+', ' ', line.strip()) # 忽略多余的空格和tab
             line = line.split('#', 1)[0] # 删除#开头的注释
