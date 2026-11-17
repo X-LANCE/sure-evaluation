@@ -20,5 +20,5 @@ internal_stages:
   - metric_scoring
   - pooled_aggregation
 notes:
-  - Builtin cpCER uses a self-contained exact alignment implementation.
-  - agwer is optional and must use the pinned fast-scoring profile from the EAR-1 package.
+  - builtin computes exact character edit distance in Python; speaker matching uses SciPy.
+  - agwer is optional and needs the organizer requirements-scoring-fast.txt.

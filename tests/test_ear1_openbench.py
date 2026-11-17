@@ -1,4 +1,5 @@
 import json
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -99,3 +100,39 @@ def test_ear1_env_setup_dry_run_plans_scipy_install():
     action = json.loads(result.stdout)["actions"][0]
     assert action["runtime"] == "pip"
     assert action["packages"] == ["scipy>=1.10"]
+
+
+def _run_esd(tmp_path, submission, reference_dir):
+    pipeline = build_pipeline_spec("ear1", metric="der", track="D1")
+    return run_pipeline_spec(
+        pipeline,
+        output_dir=str(tmp_path / "out"),
+        submission=str(submission),
+        reference_dir=str(reference_dir),
+    )
+
+
+def test_ear1_rejects_missing_submission_and_reference_paths(tmp_path):
+    with pytest.raises(ValueError, match="submission ZIP does not exist"):
+        _run_esd(tmp_path, tmp_path / "missing.zip", EAR1 / "esd" / "reference")
+    with pytest.raises(ValueError, match="reference directory does not exist"):
+        _run_esd(tmp_path, EAR1 / "esd" / "submission.zip", tmp_path / "missing_reference")
+
+
+def test_ear1_rejects_submission_that_omits_a_session(tmp_path):
+    incomplete = tmp_path / "incomplete.zip"
+    with zipfile.ZipFile(EAR1 / "esd" / "submission.zip") as src, zipfile.ZipFile(incomplete, "w") as dst:
+        for name in src.namelist():
+            if name != "empty_sessions.txt":
+                dst.writestr(name, src.read(name))
+    with pytest.raises(ValueError, match="coverage differs from the expected sessions"):
+        _run_esd(tmp_path, incomplete, EAR1 / "esd" / "reference")
+
+
+def test_ear1_rejects_malformed_rttm_row(tmp_path):
+    malformed = tmp_path / "malformed.zip"
+    with zipfile.ZipFile(malformed, "w") as dst:
+        dst.writestr("submission.rttm", "SPEAKER EVAL001 1 0.0 3.0 spk01\n")
+        dst.writestr("empty_sessions.txt", "EVAL002\n")
+    with pytest.raises(ValueError, match="invalid RTTM row"):
+        _run_esd(tmp_path, malformed, EAR1 / "esd" / "reference")
