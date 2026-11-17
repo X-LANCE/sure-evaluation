@@ -31,7 +31,8 @@ sure-eval metric run --pipeline ear1_esd_d1.json \
 For ESR-ON use `--metric cpcer` and the selected `D1` or `R1` route. The
 optional `--distance-backend agwer` requires the pinned EAR-1 fast-scoring
 dependencies; the default `builtin` backend needs only SciPy, as in the
-official scorer.
+official scorer. SciPy is not a core SURE dependency; `sure-eval env check --node
+scoring/ear1_openbench` reports it and prints the install command.
 
 The report keeps the official scorer version, `score`, `score_pct`, pooled
 `counts`, track, session count, and the full input contract. ESD uses zero

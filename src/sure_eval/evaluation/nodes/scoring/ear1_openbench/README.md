@@ -21,7 +21,10 @@ new scorer version, replace both files together and refresh
 
 The default `builtin` backend runs in process. Speaker assignment uses SciPy's
 `linear_sum_assignment`, exactly as the standalone handoff does, so SciPy must
-be installed; `node_env.yaml` declares it for `--validate-env`. The optional
+be installed. SciPy is not a core SURE dependency: `node_env.yaml` declares it
+as a pip runtime, so `sure-eval env check` and `metric run --validate-env`
+fail when it is missing and print the install command
+(`python -m pip install 'scipy>=1.10'`). The optional
 `agwer` backend requires the pinned dependencies from the external EAR-1
 package (`requirements-scoring-fast.txt`). SURE's `env setup` does not install
 the handoff's requirement files.

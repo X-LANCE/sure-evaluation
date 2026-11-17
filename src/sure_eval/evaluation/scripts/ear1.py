@@ -54,11 +54,6 @@ def run(
     routes, _ = load_task_routes("ear1")
     route = _select_route(routes, metric=metric, track=track, pipeline_id=pipeline_id)
     resolved_track = str(route["track"])
-    if track and track.upper() != resolved_track.upper():
-        raise ValueError(
-            f"Route {route['pipeline_id']} scores track {resolved_track}, not {track}; "
-            "describe the route for the requested track instead"
-        )
     description = describe_pipeline(
         metric=route_execution_metric(route) or metric,
         track=resolved_track,
@@ -82,7 +77,14 @@ def run(
 
 def _select_route(routes, *, metric: str, track: str | None, pipeline_id: str | None):
     if pipeline_id:
-        return find_pipeline_route(routes, pipeline_id=pipeline_id)
+        route = find_pipeline_route(routes, pipeline_id=pipeline_id)
+        route_track = str(route.get("track") or "")
+        if track and track.upper() != route_track.upper():
+            raise ValueError(
+                f"Route {route['pipeline_id']} scores track {route_track}, not {track}; "
+                "select the route for the requested track instead"
+            )
+        return route
     normalized_metric = metric.lower().replace("-", "")
     if normalized_metric in {"cpcer", "cp_cer"}:
         normalized_metric = "cpcer"
