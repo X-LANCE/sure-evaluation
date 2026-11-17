@@ -577,14 +577,14 @@ class SUREEvaluator:
         
         with open(ref_file, 'r', encoding='utf-8') as f:
             for line in f:
-                parts = line.strip().split('\t', 1)
+                parts = line.rstrip('\r\n').split('\t', 1)
                 if len(parts) == 2:
                     key, label = parts
                     ref_labels.append(self._normalize_label(label))
         
         with open(hyp_file, 'r', encoding='utf-8') as f:
             for line in f:
-                parts = line.strip().split('\t', 1)
+                parts = line.rstrip('\r\n').split('\t', 1)
                 if len(parts) == 2:
                     key, label = parts
                     norm_label = self._normalize_label(label)
@@ -615,14 +615,14 @@ class SUREEvaluator:
         
         with open(ref_file, 'r', encoding='utf-8') as f:
             for line in f:
-                parts = line.strip().split('\t', 1)
+                parts = line.rstrip('\r\n').split('\t', 1)
                 if len(parts) == 2:
                     key, label = parts
                     ref_labels.append(self._normalize_label(label))
         
         with open(hyp_file, 'r', encoding='utf-8') as f:
             for line in f:
-                parts = line.strip().split('\t', 1)
+                parts = line.rstrip('\r\n').split('\t', 1)
                 if len(parts) == 2:
                     key, label = parts
                     norm_label = self._normalize_label(label)

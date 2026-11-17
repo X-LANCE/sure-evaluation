@@ -58,3 +58,17 @@ def test_slu_counts_an_empty_prediction_as_a_wrong_answer(tmp_path: Path) -> Non
     hyp = _write_rows(tmp_path / "hyp.txt", ["u1\tB", "u2\t"])
 
     assert SUREEvaluator(language="en").evaluate("SLU", ref, hyp, prompt_jsonl=str(prompts)) == 0.5
+
+
+def test_ser_keeps_rows_aligned_when_a_prediction_is_empty(tmp_path: Path) -> None:
+    ref = _write_rows(tmp_path / "ref.txt", ["u1\tangry", "u2\thappy"])
+    hyp = _write_rows(tmp_path / "hyp.txt", ["u1\t", "u2\thappy"])
+
+    assert SUREEvaluator(language="en").evaluate("SER", ref, hyp) == 0.5
+
+
+def test_gr_keeps_rows_aligned_when_a_prediction_is_empty(tmp_path: Path) -> None:
+    ref = _write_rows(tmp_path / "ref.txt", ["u1\tmale", "u2\tfemale"])
+    hyp = _write_rows(tmp_path / "hyp.txt", ["u1\t", "u2\tfemale"])
+
+    assert SUREEvaluator(language="en").evaluate("GR", ref, hyp) == 0.5
