@@ -397,3 +397,33 @@ def test_audiobox_soundfile_loader_avoids_torchcodec(monkeypatch):
     assert waveform.shape == (2, 2)
     assert np.allclose(waveform, [[0.1, 0.3], [0.2, 0.4]])
     assert fake_torchaudio.load is original_load
+
+
+def test_clap_node_reads_a_caption_holding_a_unicode_line_separator(monkeypatch, tmp_path, capsys):
+    """The runtime writes captions with ensure_ascii=False, so U+2028 reaches the node raw."""
+
+    import json
+
+    import numpy as np
+
+    from sure_eval.evaluation.nodes.scoring.clap_score import node
+
+    seen_rows = []
+
+    def fake_provider(device):
+        def score(rows):
+            seen_rows.extend(rows)
+            return np.ones(len(rows))
+
+        return score
+
+    monkeypatch.setattr(node, "CLAPProvider", fake_provider)
+    caption = "A dog barks in the distance while rain falls on a tin roof"
+    input_jsonl = tmp_path / "rows.jsonl"
+    input_jsonl.write_text(
+        json.dumps({"key": "a1", "prediction_audio": "a1.wav", "caption": caption}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    assert node.main(["--input-jsonl", str(input_jsonl), "--device", "cpu", "--json"]) == 0
+    assert seen_rows == [("a1", "a1.wav", caption)]

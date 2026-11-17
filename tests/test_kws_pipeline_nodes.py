@@ -149,3 +149,16 @@ def test_runner_uses_pipeline_json(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["metric"] == "macro_recall"
     assert payload["score"] == 1
+
+
+def test_jsonl_reference_text_may_hold_a_unicode_line_separator(tmp_path):
+    """JSON written with ensure_ascii=False keeps U+2028 raw; it is not a row break in JSONL."""
+
+    ref, out = fixture_files(tmp_path)
+    rows = [json.loads(line) for line in ref.read_text(encoding="utf-8").split("\n") if line]
+    rows[0]["txt"] = "hey A what time is it"
+    ref.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8")
+
+    samples = load_samples_from_jsonl_and_outputs(ref, out)
+
+    assert [sample.key for sample in samples] == ["p", "n"]
