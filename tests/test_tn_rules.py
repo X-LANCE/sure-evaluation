@@ -87,3 +87,18 @@ def test_tn_node_keeps_a_row_whole_when_its_text_holds_a_unicode_line_separator(
         rows = _normalize_ref(tmp_path, text, "en").split("\n")
         assert rows[1:] == [""], rows
         assert rows[0].startswith("utt1\t")
+
+
+def test_tn_map_reads_a_hash_key_and_skips_only_whole_line_comments(tmp_path: Path) -> None:
+    map_file = tmp_path / "symbol.map"
+    map_file.write_text(
+        "# symbols spoken as words\n  # indented comment\n# | number\nC# | c sharp\n+ | plus\n", encoding="utf-8"
+    )
+
+    assert tn.load_and_sort_map(str(map_file), "en") == [("C#", " c sharp "), ("#", " number "), ("+", " plus ")]
+
+
+def test_tn_en_reads_the_hash_sign_as_number() -> None:
+    assert tn.asr_num2words("ticket #5 is open", "en", default_map_dir(), debug=False).split() == [
+        "ticket", "number", "five", "is", "open"
+    ]
