@@ -18,7 +18,6 @@ DISCOVERY_TASKS = (
     "asr",
     "s2tt",
     "sd",
-    "ear1",
     "sa_asr",
     "tts",
     "tta",

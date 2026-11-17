@@ -1,16 +1,21 @@
-"""Score one EAR-1 task and track using platform-side references."""
+"""EAR-1 submission and reference parsing shared by the EAR-1 conversion profiles.
+
+The functions below are copied from the organizer scorer ``score.py``
+(``openbench-integration-0.1``). Validation messages and floating-point
+operations are kept as in the original so the converted rows score
+identically. Scoring itself lives in ``nodes/scoring/ear1_scorer``.
+"""
 from __future__ import annotations
 
 from collections import defaultdict
 import json
 import math
+from pathlib import Path
 import re
 import unicodedata
 from zipfile import ZipFile
 
-from .metrics import cpcer, der, normalize_text
-
-VERSION = 'openbench-integration-0.1'
+SCORER_VERSION = 'openbench-integration-0.1'
 SESSION_ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]*')
 MAX_ZIP_TEXT = 64 * 1024 * 1024
 
@@ -37,9 +42,9 @@ def spans(values, duration):
     return result
 
 
-def load_sessions(path, track):
-    config = json.loads(path.read_text(encoding='utf-8'))
-    require(config['track'] == track, 'Track differs from the reference configuration')
+def load_sessions(path):
+    """Read ``sessions.json``. Returns the declared track and validated sessions."""
+    config = json.loads(Path(path).read_text(encoding='utf-8'))
     sessions = config['sessions']
     require(isinstance(sessions, dict) and sessions, 'Expected at least one reference session')
     for session, meta in sessions.items():
@@ -50,7 +55,7 @@ def load_sessions(path, track):
         meta['uem'] = spans(meta.get('uem', [[0, duration]]), duration)
         require(meta['uem'], f'Empty UEM for {session}')
         meta['exclude'] = spans(meta.get('exclude', []), duration)
-    return sessions
+    return config.get('track'), sessions
 
 
 def parse(text, kind, sessions, label, session=None):
@@ -90,20 +95,25 @@ def read_zip(path, allowed, required):
         return {name: archive.read(name).decode('utf-8-sig') for name in names}
 
 
-def load_pair(task, submission, reference_dir, sessions):
-    if task == 'ESD-ON':
-        required = {'submission.rttm'}
-        files = read_zip(submission, required | {'empty_sessions.txt'}, required)
-        hyp = parse(files['submission.rttm'], 'rttm', sessions, 'submission.rttm')
-        empty = files.get('empty_sessions.txt', '').split()
-        require(len(empty) == len(set(empty)) and not set(empty).intersection(hyp),
-                'Duplicate empty-session declaration or session also present in RTTM')
-        require(set(hyp) | set(empty) == set(sessions), 'RTTM coverage differs from the expected sessions')
-        ref_file = reference_dir / 'reference.rttm'
-        ref = parse(ref_file.read_text(encoding='utf-8-sig'), 'rttm', sessions, ref_file.name)
-        return ref, hyp
+def load_diarization_pair(submission, reference, sessions):
+    """ESD-ON: submission ZIP with ``submission.rttm`` and a merged reference RTTM."""
+    required = {'submission.rttm'}
+    files = read_zip(submission, required | {'empty_sessions.txt'}, required)
+    hyp = parse(files['submission.rttm'], 'rttm', sessions, 'submission.rttm')
+    empty = files.get('empty_sessions.txt', '').split()
+    require(len(empty) == len(set(empty)) and not set(empty).intersection(hyp),
+            'Duplicate empty-session declaration or session also present in RTTM')
+    require(set(hyp) | set(empty) == set(sessions), 'RTTM coverage differs from the expected sessions')
+    reference = Path(reference)
+    ref = parse(reference.read_text(encoding='utf-8-sig'), 'rttm', sessions, reference.name)
+    return ref, hyp
+
+
+def load_transcription_pair(submission, reference_dir, sessions):
+    """ESR-ON: submission ZIP and reference directory with one STM per session."""
     expected = {sid + '.stm' for sid in sessions}
     files = read_zip(submission, expected, expected)
+    reference_dir = Path(reference_dir)
     ref, hyp = {}, {}
     for sid in sessions:
         name = sid + '.stm'
@@ -124,53 +134,25 @@ def project(rows, regions):
     return result, offset
 
 
-def score_der(ref, hyp, meta):
-    ref, duration = project(ref, meta['uem'])
-    hyp, _ = project(hyp, meta['uem'])
-    keys = ('miss_s', 'fa_s', 'conf_s', 'ref_s')
-    if not ref:
-        return dict(zip(keys, (0.0, sum(row['end'] - row['start'] for row in hyp), 0.0, 0.0)))
-    result = der(ref, hyp, duration)
-    return {key: result[key] for key in keys}
-
-
-def streams(rows, exclusions):
-    result = defaultdict(str)
-    for row in sorted(rows, key=lambda x: (x['start'], x['end'])):
-        if any(row['start'] < b and a < row['end'] for a, b in exclusions):
-            continue
-        text = normalize_text(row['text'])
-        if text:
-            result[row['speaker']] += text
-    return result
-
-
-def score_cpcer(ref, hyp, meta, backend):
-    starred = [(row['start'], row['end']) for row in ref
+def exclusion_spans(ref_rows, meta):
+    """Organizer ``exclude`` intervals plus reference rows containing ``*``."""
+    starred = [(row['start'], row['end']) for row in ref_rows
                if '*' in unicodedata.normalize('NFKC', row['text'])]
-    exclusions = spans([*meta['exclude'], *starred], meta['duration_s'])
-    ref, hyp = streams(ref, exclusions), streams(hyp, exclusions)
-    keys = ('substitutions', 'deletions', 'insertions', 'reference_characters')
-    if not ref:
-        return dict(zip(keys, (0, 0, sum(map(len, hyp.values())), 0)))
-    result = cpcer(ref, hyp, distance_backend=backend)
-    return {key: result[key] for key in keys}
+    return spans([*meta['exclude'], *starred], meta['duration_s'])
 
 
-def score(task, track, submission, reference_dir, backend='builtin', distance_backend=None):
-    if distance_backend is not None:
-        backend = distance_backend
-    require(task in {'ESD-ON', 'ESR-ON'} and track in {'D1', 'R1'}, 'Unknown task or track')
-    sessions = load_sessions(reference_dir / 'sessions.json', track)
-    ref, hyp = load_pair(task, submission, reference_dir, sessions)
-    if task == 'ESD-ON':
-        counts = [score_der(ref.get(sid, []), hyp.get(sid, []), meta) for sid, meta in sessions.items()]
-        metric, denominator, errors = 'DER', 'ref_s', ('miss_s', 'fa_s', 'conf_s')
-    else:
-        counts = [score_cpcer(ref[sid], hyp[sid], meta, backend) for sid, meta in sessions.items()]
-        metric, denominator, errors = 'cpCER', 'reference_characters', ('substitutions', 'deletions', 'insertions')
-    totals = {key: sum(row[key] for row in counts) for key in counts[0]}
-    require(totals[denominator] > 0, 'Zero reference denominator for the track')
-    value = sum(totals[key] for key in errors) / totals[denominator]
-    return {'scorer_version': VERSION, 'task': task, 'track': track, 'metric': metric,
-            'score': value, 'score_pct': 100 * value, 'session_count': len(sessions), 'counts': totals}
+def kept_rows(rows, exclusions):
+    """Rows in scoring order with every row overlapping an exclusion removed."""
+    return [row for row in sorted(rows, key=lambda x: (x['start'], x['end']))
+            if not any(row['start'] < b and a < row['end'] for a, b in exclusions)]
+
+
+def write_seglst(path, rows_by_session):
+    """Write rows as MeetEval SegLST JSON, keeping row order and exact float values."""
+    segments = [
+        {'session_id': sid, 'speaker': row['speaker'], 'start_time': row['start'],
+         'end_time': row['end'], 'words': row['text']}
+        for sid, rows in rows_by_session.items() for row in rows
+    ]
+    Path(path).write_text(json.dumps(segments, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return len(segments)
