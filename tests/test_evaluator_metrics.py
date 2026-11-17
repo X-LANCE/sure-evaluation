@@ -41,3 +41,20 @@ def test_codeswitch_asr_counts_an_empty_prediction_as_deletions(tmp_path: Path) 
 
     assert (result["mer_details"]["all"], result["mer_details"]["del"]) == (5, 3)
     assert result["mer"] == 0.6
+
+
+def test_slu_counts_an_empty_prediction_as_a_wrong_answer(tmp_path: Path) -> None:
+    import json
+
+    prompts = tmp_path / "prompts.jsonl"
+    prompts.write_text(
+        "".join(
+            json.dumps({"key": key, "prompt": f"What does the speaker want?\nA. {a}\nB. {b}"}) + "\n"
+            for key, a, b in [("u1", "book a flight", "cancel a flight"), ("u2", "play music", "stop music")]
+        ),
+        encoding="utf-8",
+    )
+    ref = _write_rows(tmp_path / "ref.txt", ["u1\tB", "u2\tA"])
+    hyp = _write_rows(tmp_path / "hyp.txt", ["u1\tB", "u2\t"])
+
+    assert SUREEvaluator(language="en").evaluate("SLU", ref, hyp, prompt_jsonl=str(prompts)) == 0.5
