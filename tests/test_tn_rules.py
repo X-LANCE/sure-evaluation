@@ -78,3 +78,12 @@ def test_asr_num2words_reads_the_language_directory_under_the_rules_root() -> No
     assert tn.asr_num2words("50% done", "en", rules, debug=False) == " fifty  percent  done"
     for language in ("zh", "zh_CN", "zh_cn"):
         assert tn.asr_num2words("气温25℃", language, rules, debug=False) == "气温二十五摄氏度"
+
+
+def test_tn_node_keeps_a_row_whole_when_its_text_holds_a_unicode_line_separator(tmp_path: Path) -> None:
+    """U+0085 (a cp1252 ellipsis decoded as Latin-1) and U+2028 are not row breaks in key-text files."""
+
+    for text in ("wait\u0085 what happened", "first line\u2028second line"):
+        rows = _normalize_ref(tmp_path, text, "en").split("\n")
+        assert rows[1:] == [""], rows
+        assert rows[0].startswith("utt1\t")

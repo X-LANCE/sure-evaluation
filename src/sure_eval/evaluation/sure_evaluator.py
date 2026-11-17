@@ -70,7 +70,8 @@ def _strip_eval_punct_text(text: str) -> str:
 def _strip_eval_punct_file(path: str) -> None:
     """Strip punctuation from key-tab-text files like evaluation-pipeline."""
     file_path = Path(path)
-    lines = file_path.read_text(encoding='utf-8').splitlines()
+    # Split on \n only: splitlines() would also break a row at U+0085 or U+2028 inside its text.
+    lines = file_path.read_text(encoding='utf-8').removesuffix('\n').split('\n')
     cleaned_lines = []
     for line in lines:
         if '\t' not in line:
