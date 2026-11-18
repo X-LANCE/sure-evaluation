@@ -124,7 +124,8 @@ sure-eval metric run --pipeline sa_asr_ear1.json \
 
 Expected `score` is 0.625: 1 substitution, 2 deletions and 2 insertions over 8
 reference characters. `report.json` → `details.scoring_result` also has
-`scorer_version`, `track`, `score_pct`, `session_count` and `counts`.
+`scorer_version`, `task` (`ESR-ON`), `track`, `score_pct`, `session_count` and
+`counts`.
 
 The route parameter `distance_backend` is `builtin`. `agwer` gives the same
 totals faster but needs the organizer `requirements-scoring-fast.txt`.

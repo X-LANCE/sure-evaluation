@@ -15,8 +15,8 @@ NODE_ID = "scoring/ear1_scorer"
 NODE_VERSION = "v1"
 SCORER_VERSION = "openbench-integration-0.1"
 METRICS = {
-    "der": ("DER", "ref_s", ("miss_s", "fa_s", "conf_s")),
-    "cpcer": ("cpCER", "reference_characters", ("substitutions", "deletions", "insertions")),
+    "der": ("ESD-ON", "DER", "ref_s", ("miss_s", "fa_s", "conf_s")),
+    "cpcer": ("ESR-ON", "cpCER", "reference_characters", ("substitutions", "deletions", "insertions")),
 }
 
 
@@ -40,13 +40,14 @@ def score_ear1(
         counts = [_score_der(ref[sid], hyp[sid], meta["scored_duration_s"]) for sid, meta in sessions.items()]
     else:
         counts = [_score_cpcer(ref[sid], hyp[sid], distance_backend) for sid in sessions]
-    label, denominator, errors = METRICS[metric]
+    task, label, denominator, errors = METRICS[metric]
     totals = {key: sum(row[key] for row in counts) for key in counts[0]}
     if not totals[denominator] > 0:
         raise ValueError("Zero reference denominator for the track")
     value = sum(totals[key] for key in errors) / totals[denominator]
     result = {
         "scorer_version": SCORER_VERSION,
+        "task": task,
         "track": config.get("track"),
         "metric": label,
         "score": value,

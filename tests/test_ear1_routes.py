@@ -75,10 +75,7 @@ def test_sd_ear1_route_matches_organizer_scorer(tmp_path):
     assert summary["pipeline_id"] == SD_EAR1
     assert report["pipeline_id"] == SD_EAR1
     assert report["metric"] == "der"
-    assert result["score"] == expected["score"]
-    assert result["counts"] == expected["counts"]
-    assert result["track"] == expected["track"]
-    assert result["scorer_version"] == expected["scorer_version"]
+    assert result == expected
     assert [item["node_id"] for item in report["pipeline_trace"]] == ["scoring/ear1_scorer"]
     assert (tmp_path / "out" / "conversion" / "sd__ear1_submission" / "hyp.seglst.json").is_file()
 
@@ -91,8 +88,7 @@ def test_sa_asr_ear1_route_matches_organizer_scorer(tmp_path):
 
     assert summary["pipeline_id"] == SA_ASR_EAR1
     assert report["metric"] == "cpcer"
-    assert result["score"] == expected["score"]
-    assert result["counts"] == expected["counts"]
+    assert result == expected
     assert [item["node_id"] for item in report["pipeline_trace"]] == [
         "normalization/ear1_norm",
         "scoring/ear1_scorer",
