@@ -23,8 +23,8 @@ ZIPs; the EAR-1 conversion profiles do that.
 ## Output
 
 - Schema: `ear1_metric_report`.
-- Fields: `scorer_version`, `track`, `metric`, `score`, `score_pct`,
-  `session_count`, `counts`.
+- Fields: `scorer_version`, `task` (`ESD-ON` or `ESR-ON`), `track`, `metric`,
+  `score`, `score_pct`, `session_count`, `counts`.
 - DER counts: `miss_s`, `fa_s`, `conf_s`, `ref_s`.
 - cpCER counts: `substitutions`, `deletions`, `insertions`,
   `reference_characters`.

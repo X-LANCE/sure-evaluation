@@ -133,7 +133,7 @@ sure-eval metric run --pipeline sd_ear1.json \
 `sd_ear1/report.json` → `details.scoring_result`:
 
 ```json
-{"scorer_version": "openbench-integration-0.1", "track": "D1", "metric": "DER",
+{"scorer_version": "openbench-integration-0.1", "task": "ESD-ON", "track": "D1", "metric": "DER",
  "score": 0.5, "score_pct": 50.0, "session_count": 2,
  "counts": {"miss_s": 3.0, "fa_s": 1.0, "conf_s": 1.0, "ref_s": 10.0}}
 ```
