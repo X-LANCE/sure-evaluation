@@ -462,11 +462,12 @@ def run_pipeline_spec(
         for key in (
             "dimension",
             "threshold_deg",
-            "aggregation",
-            "timestamp_tolerance_sec",
             "prediction_activity_policy",
         ):
             cli_values.pop(key, None)
+        if task != "mer":
+            for key in ("aggregation", "timestamp_tolerance_sec"):
+                cli_values.pop(key, None)
     kwargs.update({key: value for key, value in cli_values.items() if value is not None})
     if task == "kws":
         for key, value in {"target_fa_per_hour": target_fa_per_hour,
@@ -610,6 +611,11 @@ def _describe_kwargs(
         return kwargs
     if task == "doa":
         kwargs = {"metric": metric or "mae"}
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
+    if task == "mer":
+        kwargs = {"metric": metric or "rmse"}
         if pipeline_id:
             kwargs["pipeline_id"] = pipeline_id
         return kwargs

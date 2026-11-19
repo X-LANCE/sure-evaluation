@@ -212,6 +212,7 @@ packages and Git.
 | VAD | F1, false alarm, miss, NIST DCF, ROC AUC | [VAD](docs/tasks/vad.md) |
 | FULL_DUPLEX | IRD, FSED, ERT, EIT from saved conversation timelines | [Full-duplex timing](docs/tasks/full_duplex.md) |
 | DOA | MAE, RMSE, threshold accuracy, localization precision/recall/F1 | [DOA](docs/tasks/doa.md) |
+| MER | Static & 0.5s dynamic Valence-Arousal RMSE, MAE, PCC, R2, CCC | [MER](docs/tasks/mer.md) |
 | LID | Spoken-language label accuracy | [LID](docs/tasks/lid.md) |
 
 Each task guide defines its input contract, registered metrics, exact pipeline

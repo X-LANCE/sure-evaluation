@@ -1,0 +1,103 @@
+task: MER
+language_sensitive: false
+routes:
+  -
+    metric: rmse
+    pipeline_id: mer.any.rmse.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_static_jsonl
+    granularity: static
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files
+  -
+    metric: mae
+    pipeline_id: mer.any.mae.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_static_jsonl
+    granularity: static
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files
+  -
+    metric: pcc
+    pipeline_id: mer.any.pcc.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_static_jsonl
+    granularity: static
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files
+  -
+    metric: r2
+    pipeline_id: mer.any.r2.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_static_jsonl
+    granularity: static
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files
+  -
+    metric: ccc
+    pipeline_id: mer.any.ccc.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_static_jsonl
+    granularity: static
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files
+  -
+    metric: dynamic_rmse
+    pipeline_id: mer.any.dynamic_rmse.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_dynamic_jsonl
+    granularity: dynamic
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files
+  -
+    metric: dynamic_mae
+    pipeline_id: mer.any.dynamic_mae.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_dynamic_jsonl
+    granularity: dynamic
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files
+  -
+    metric: dynamic_pcc
+    pipeline_id: mer.any.dynamic_pcc.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_dynamic_jsonl
+    granularity: dynamic
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files
+  -
+    metric: dynamic_r2
+    pipeline_id: mer.any.dynamic_r2.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_dynamic_jsonl
+    granularity: dynamic
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files
+  -
+    metric: dynamic_ccc
+    pipeline_id: mer.any.dynamic_ccc.mer_jsonl_v1.mer_regression_v1
+    nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    computation_nodes: [normalization/mer_jsonl, scoring/mer_regression]
+    input_contract: mer_dynamic_jsonl
+    granularity: dynamic
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    executor: sure_eval.evaluation.tasks.mer.pipeline.evaluate_mer_files

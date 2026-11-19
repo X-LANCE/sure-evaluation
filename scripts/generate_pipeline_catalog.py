@@ -32,6 +32,7 @@ DISCOVERY_TASKS = (
     "vad",
     "full_duplex",
     "doa",
+    "mer",
     "lid",
     "sv",
     "rir",
