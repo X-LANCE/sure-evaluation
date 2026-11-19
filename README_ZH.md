@@ -201,6 +201,7 @@ node-local 虚拟环境只保留在本地，不会进入安装包或 Git。
 | VAD | F1、false alarm、miss、NIST DCF、ROC AUC | [VAD](docs/tasks/vad.md) |
 | FULL_DUPLEX | 从已保存的对话时间轴计算 IRD、FSED、ERT、EIT | [全双工时序评估](docs/tasks/full_duplex.md) |
 | DOA | MAE、RMSE、阈值准确率、定位 precision/recall/F1 | [DOA](docs/tasks/doa.md) |
+| MER | 静态与 0.5 秒动态效价唤醒度 RMSE、MAE、PCC、R2、CCC | [MER](docs/tasks/mer.md) |
 | LID | 语种标签准确率 | [LID](docs/tasks/lid.md) |
 
 每份任务指南都会说明输入 contract、已注册 metric、精确 pipeline ID、节点和

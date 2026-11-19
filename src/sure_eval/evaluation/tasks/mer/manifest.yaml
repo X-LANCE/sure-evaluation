@@ -1,0 +1,62 @@
+id: task/mer
+version: v1
+task: MER
+default_metric: rmse
+language_sensitive: false
+routes:
+  rmse:
+    pipeline_id: mer.any.rmse.mer_jsonl_v1.mer_regression_v1
+  mae:
+    pipeline_id: mer.any.mae.mer_jsonl_v1.mer_regression_v1
+  pcc:
+    pipeline_id: mer.any.pcc.mer_jsonl_v1.mer_regression_v1
+  r2:
+    pipeline_id: mer.any.r2.mer_jsonl_v1.mer_regression_v1
+  ccc:
+    pipeline_id: mer.any.ccc.mer_jsonl_v1.mer_regression_v1
+  dynamic_rmse:
+    pipeline_id: mer.any.dynamic_rmse.mer_jsonl_v1.mer_regression_v1
+  dynamic_mae:
+    pipeline_id: mer.any.dynamic_mae.mer_jsonl_v1.mer_regression_v1
+  dynamic_pcc:
+    pipeline_id: mer.any.dynamic_pcc.mer_jsonl_v1.mer_regression_v1
+  dynamic_r2:
+    pipeline_id: mer.any.dynamic_r2.mer_jsonl_v1.mer_regression_v1
+  dynamic_ccc:
+    pipeline_id: mer.any.dynamic_ccc.mer_jsonl_v1.mer_regression_v1
+input_contracts:
+  mer_static_jsonl:
+    required_roles: [reference_jsonl, sample_output]
+    optional_roles: [aggregation]
+    row_format: mer_static_valence_arousal_jsonl
+    alignment_key: music_id
+    aggregation: micro_mean_valence_arousal
+    purpose: canonical_static_music_emotion_regression
+  mer_dynamic_jsonl:
+    required_roles: [reference_jsonl, sample_output]
+    optional_roles: [aggregation, timestamp_tolerance_sec]
+    row_format: mer_dynamic_valence_arousal_jsonl
+    alignment_key: music_id_frame_time
+    aggregation: micro_or_macro_song_mean_valence_arousal
+    purpose: canonical_dynamic_music_emotion_regression
+metrics:
+  - rmse
+  - mae
+  - pcc
+  - r2
+  - ccc
+  - dynamic_rmse
+  - dynamic_mae
+  - dynamic_pcc
+  - dynamic_r2
+  - dynamic_ccc
+reported_fields:
+  - score
+  - by_dimension
+  - micro
+  - macro_song
+  - num_rows
+  - num_songs
+  - input_sha256
+compatibility:
+  legacy_entry: []
