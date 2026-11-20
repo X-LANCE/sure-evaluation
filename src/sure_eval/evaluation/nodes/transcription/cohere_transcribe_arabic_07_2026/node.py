@@ -269,7 +269,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.input_jsonl:
         rows = [
             (line_no, json.loads(line))
-            for line_no, line in enumerate(Path(args.input_jsonl).read_text(encoding="utf-8").splitlines(), start=1)
+            for line_no, line in enumerate(Path(args.input_jsonl).read_text(encoding="utf-8").split("\n"), start=1)
             if line.strip()
         ]
         languages = {_normalize_language(str(row.get("language") or args.language)) for _, row in rows}

@@ -39,10 +39,12 @@ def get_n2w_map(map_file, language=None):
         print("error: no such map file: ", map_file, file=sys.stderr)
         return
     n2w_map = []
-    with open(map_file, 'r') as fm:
+    with open(map_file, 'r', encoding='utf-8') as fm:
         for line in fm:
             line = re.sub(r'\s+', ' ', line.strip()) # 忽略多余的空格和tab
-            line = line.split('#', 1)[0] # 删除#开头的注释
+            # A line starting with # is a comment, except "# | ..." which is the rule for # itself
+            if line.startswith('#') and not re.match(r'#\s*\|', line):
+                continue
             if (len(line) == 0): # empty line
                 continue
             line2 = line.split('|') # 优先以'|'分割
@@ -103,7 +105,7 @@ def preprocess_zh_text(text):
     
     # 匹配中文数字的逐位读法（如"一零"、"一五"、"二零"等）
     # 只匹配2位中文数字，避免匹配更长或更短的
-    text = re.sub(r'([一二三四五六七八九零])([一二三四五六七八九零])', normalize_chinese_digits, text)
+    text = re.sub(r'(?<![一二三四五六七八九零〇])([一二三四五六七八九零])([一二三四五六七八九零])(?![一二三四五六七八九零〇])', normalize_chinese_digits, text)
     
     # 1. 阿拉伯数字转中文数字（处理时间、年龄等场景）
     def arabic_to_chinese_num(match):
@@ -263,6 +265,8 @@ def asr_num2words(
         # fallback: 兼容老接口
         pairs = []
         map_files = glob.glob(os.path.join(map_dir, "*.map"))
+        # map_dir may be the rules root, whose rules sit under the base language (zh_CN -> zh)
+        map_files += glob.glob(os.path.join(map_dir, language.split('_')[0], "*.map"))
         for mf in map_files:
             if os.path.basename(mf) != "digit.map":
                 pairs.extend(load_and_sort_map(mf, language))

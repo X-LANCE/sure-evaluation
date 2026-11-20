@@ -15,7 +15,7 @@ from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import (
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [
-        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
+        json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()
     ]
 
 
@@ -128,7 +128,7 @@ def load_samples_from_jsonl_and_outputs(
     try:
         outputs = json.loads(text)
     except json.JSONDecodeError:
-        outputs = [json.loads(line) for line in text.splitlines() if line.strip()]
+        outputs = [json.loads(line) for line in text.split("\n") if line.strip()]
     if isinstance(outputs, dict):
         outputs = outputs.get("rows", [outputs] if "key" in outputs else None)
     if not isinstance(outputs, list):

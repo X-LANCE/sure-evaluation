@@ -48,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.input_jsonl:
         input_path = Path(args.input_jsonl)
         rows: list[MOSRow] = []
-        for line in input_path.read_text(encoding="utf-8").splitlines():
+        for line in input_path.read_text(encoding="utf-8").split("\n"):
             if not line.strip():
                 continue
             row = json.loads(line)
