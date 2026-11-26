@@ -164,7 +164,7 @@ def article(entry: Entry, previous: list[Entry]) -> str:
       </div></article>'''
 
 
-def render_page(entries: list[Entry], *, site_repository: str = "PigeonDan1/sure-evaluation") -> str:
+def render_page(entries: list[Entry], *, site_repository: str | None = None) -> str:
     superseded = {e.supersedes for e in entries if e.supersedes}
     active = [e for e in entries if e.id not in superseded]
     by_id = {e.id: e for e in entries}
@@ -181,6 +181,9 @@ def render_page(entries: list[Entry], *, site_repository: str = "PigeonDan1/sure
         articles.append(article(entry, previous))
     template = files("news_agent").joinpath("templates/news.html").read_text(encoding="utf-8")
     latest = active[0] if active else None
+    if site_repository is None:
+        site_repository = (entries[0].links.source_change.rsplit("/commit/", 1)[0]
+                           .removeprefix("https://github.com/")) if entries else ""
     repository = "https://github.com/" + escape(site_repository, quote=True)
     replacements = {
         "{{REPOSITORY}}": repository,

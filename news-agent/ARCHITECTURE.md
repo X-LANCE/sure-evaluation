@@ -24,9 +24,9 @@ flowchart TD
     README --> Pages[GitHub Pages deploys docs/news]
 ```
 
-`run` and `poll-personal` share evidence validation, rendering and output
+`run` and `poll` share evidence validation, rendering and output
 validation. Their discovery and publication policies are different; the
-personal deployment is not an alias for general dry-run polling.
+configured deployment is not an alias for general dry-run polling.
 
 ## Module responsibilities
 
@@ -39,7 +39,7 @@ personal deployment is not an alias for general dry-run polling.
 | `kimi_client.py` | Fixed `k3.1-pro` client, dedicated credential, bounded retries and complete-response validation |
 | `state.py` | Process lock and SQLite storage for cursors; job queue and copy cache used by `run` |
 | `cli.py` | Local render/check/diagnostics and the generic queued `run` workflow |
-| `personal.py` | New-capability/revision review and direct publication to the fixed personal fork |
+| `polling.py` | New-capability/revision review and direct publication to the configured target repository |
 | `renderer.py` | Common newest-first selection and generation of README, Markdown release notes and page assets |
 | `readme_cards.py` | White 760 × 280 SVG cards and GitHub's horizontal README strip |
 | `web.py`, `templates/news.html` | Localized release timeline, source links, filtering, theme and pipeline details |
@@ -55,7 +55,7 @@ plain prose; it cannot supply arbitrary markup, file paths or publication
 links. Entry validation rereads the declared source commit before publication.
 
 The generic `run` path requests English copy for newly registered pipelines.
-The personal path first asks Kimi to select material new capabilities or
+The configured polling path first asks Kimi to select material new capabilities or
 revisions, then requests an English and Chinese draft for each selection.
 Neither path treats an open, unmerged PR as supported. Current polling reads
 changes reachable from the selected source main branch.
@@ -100,11 +100,11 @@ publication branch does not automatically upgrade the poller's installed code.
 
 ## Publication and retry policies
 
-| Policy | Generic `run` | Explicit `poll-personal` |
+| Policy | Generic `run` | Explicit `poll` |
 | --- | --- | --- |
-| Default effect | Local dry-run preview | May push directly to personal `main`, irrespective of `config.mode` |
-| Source/target | Configured repository, ref and remote | Fixed upstream source and fixed personal target |
-| Remote modes | `pr` opens a documentation PR; `docs-commit` pushes its branch only | Direct fast-forward documentation push to personal `main` |
+| Default effect | Local dry-run preview | May push directly to the configured target when `poll_mode: direct` |
+| Source/target | Configured repository, ref and remote | Configured source/target repositories and branches |
+| Remote modes | `pr` opens a documentation PR; `docs-commit` pushes its branch only | Direct fast-forward documentation push when `poll_mode: direct` |
 | Persistent recovery | Frozen job evidence, cached copy, status/error and cursor | Cursor and deterministic IDs checked against published entries |
 | Empty candidate set | No new model request | Kimi selection request with an empty candidate list |
 | Failed publication | Queued job remains retryable; cached copy can be reused | Source range remains retryable; draft generation may run again |
@@ -115,19 +115,11 @@ snapshot; a concurrent target push makes its non-forced push fail for retry.
 Published history detects a push that succeeded before its cursor update,
 preventing duplicate entry publication.
 
-The personal command fixes source to `PigeonDan1/sure-evaluation:main`, target
-to `bichengzhang09-crypto/sure-evaluation:main`, and display links to the personal
-site. Generic `site_repository` and `pages_url` settings affect presentation,
+The poll command reads `source_repository` and `target_repository` from configuration and uses the configured site links. Generic `site_repository` and `pages_url` settings affect presentation,
 not Git publication authorization or destinations. General upstream deployment
 uses its configured repository and explicit publication mode.
 
-The canonical upstream repository and base for a new upstream PR are
-`X-LANCE/sure-evaluation`. The historical `PigeonDan1/sure-evaluation` alias
-still resolves there and is retained in source validation and published entry
-evidence. The example configuration therefore keeps that source alias while
-setting display links to `X-LANCE/sure-evaluation` and
-`https://x-lance.github.io/sure-evaluation/`. This separation avoids rewriting
-immutable history or redirecting the personal publication path.
+The source, target and display site are configuration values. Published entry evidence remains bound to its original source URL and commit.
 
 ## Presentation and deployment
 
@@ -140,7 +132,7 @@ It has no duplicate recent-support card rail.
 The Pages workflow copies `docs/news/` to the deployed site when the generated
 site changes on `main`, or on manual dispatch. It does not generate model copy.
 The generic systemd templates schedule `run` every 30 minutes; the existing
-personal installation independently schedules `poll-personal` every six hours.
+configured installation independently schedules `poll` every six hours.
 Neither service is installed or enabled by package installation.
 
 For local verification without model calls or remote publication:
@@ -151,5 +143,5 @@ PYTHONPATH=news-agent/src python -m news_agent --config news-agent/config.yaml.e
 ```
 
 Use `doctor --smoke` only for an intentional live model check. Use `render`
-for a local preview. `poll-personal` is a publishing action, not a verification
+for a local preview. `poll` is a publishing action, not a verification
 command for an uncommitted maintenance change.

@@ -21,6 +21,13 @@ class Config(Strict):
     site_repository: str | None = Field(default=None,
                                        pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
     pages_url: str | None = None
+    source_repository: str | None = Field(default=None,
+                                         pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+    source_branch: str = Field(default="main", pattern=r"^[A-Za-z0-9_./-]+$")
+    target_repository: str | None = Field(default=None,
+                                         pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+    target_branch: str = Field(default="main", pattern=r"^[A-Za-z0-9_./-]+$")
+    poll_mode: Literal["dry-run", "direct"] = "dry-run"
     checkout: Path = Path("..")
     base_branch: str = Field(default="main", pattern=r"^[A-Za-z0-9_./-]+$")
     remote: str = Field(default="origin", pattern=r"^[A-Za-z0-9_-]+$")
