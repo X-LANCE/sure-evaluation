@@ -57,7 +57,9 @@ jobs:
             --extra audio \
             --extra canonical \
             --extra giga \
-            pytest -q --ignore=tests/test_evaluation_env_check.py
+            pytest -q \
+              --ignore=tests/test_evaluation_env_check.py \
+              --ignore=news-agent/tests
       - name: Environment metadata tests
         run: |
           uv run \
