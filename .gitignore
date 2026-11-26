@@ -39,3 +39,9 @@ results/
 tmp/
 *.log
 MANIFEST.runtime*
+
+# Independent news agent runtime and local credentials
+news-agent/state/
+news-agent/logs/
+news-agent/config.yaml
+news-agent/.env

@@ -1,0 +1,86 @@
+title: EAR-1 evaluation support
+summary: Evaluate EAR-1 SD/DER and Mandarin SA-ASR/cpCER submissions. Submission conversion
+  and the required text normalization feed the organizer scorer, which writes report.json.
+limitations: Uses v1 nodes and the openbench-integration-0.1 scorer. Install SciPy
+  and provide sessions.json with track D1 or R1. DER uses collar 0 and pools sessions;
+  character-level cpCER is not comparable with cpWER.
+id: ear-1
+revision: 1
+supersedes: null
+status: supported
+published_at: '2026-11-18'
+support:
+  tasks:
+  - sa_asr
+  - sd
+  metrics:
+  - cpcer
+  - der
+  pipeline_ids:
+  - sd.any.der.conversion_sd_ear1_submission_v1.ear1_scorer_v1
+  - sa_asr.zh.cpcer.conversion_sa_asr_ear1_submission_v1.ear1_norm_v1.ear1_scorer_v1
+chain:
+- task: sd
+  language: n/a
+  metric: der
+  pipeline_id: sd.any.der.conversion_sd_ear1_submission_v1.ear1_scorer_v1
+  nodes:
+  - id: conversion/sd__ear1_submission
+    version: v1
+  - id: scoring/ear1_scorer
+    version: v1
+- task: sa_asr
+  language: zh
+  metric: cpcer
+  pipeline_id: sa_asr.zh.cpcer.conversion_sa_asr_ear1_submission_v1.ear1_norm_v1.ear1_scorer_v1
+  nodes:
+  - id: conversion/sa_asr__ear1_submission
+    version: v1
+  - id: normalization/ear1_norm
+    version: v1
+  - id: scoring/ear1_scorer
+    version: v1
+links:
+  docs:
+  - docs/tasks/sa_asr.md
+  - docs/tasks/sd.md
+  catalog: docs/pipeline_catalog.jsonl
+  source_change: https://github.com/PigeonDan1/sure-evaluation/commit/3853dab1db5d7d44691b25a6620932742a1c0a50
+  related_changes:
+  - https://github.com/PigeonDan1/sure-evaluation/commit/c1bc96cf865baef07e37f702a8286d3a6c68a5a2
+  tests:
+  - tests/test_ear1_routes.py
+  - tests/fixtures/ear1/esd/expected.json
+  - tests/fixtures/ear1/esr/expected.json
+evidence:
+  source_commit: 3853dab1db5d7d44691b25a6620932742a1c0a50
+  source_files:
+  - docs/pipeline_catalog.jsonl
+  - docs/tasks/sa_asr.md
+  - docs/tasks/sd.md
+  - src/sure_eval/evaluation/conversion/sa_asr__ear1_submission/manifest.yaml
+  - src/sure_eval/evaluation/conversion/sd__ear1_submission/manifest.yaml
+  - src/sure_eval/evaluation/nodes/normalization/ear1_norm/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/ear1_scorer/manifest.yaml
+  - src/sure_eval/evaluation/tasks/sa_asr/manifest.yaml
+  - src/sure_eval/evaluation/tasks/sa_asr/routes.yaml
+  - src/sure_eval/evaluation/tasks/sd/manifest.yaml
+  - src/sure_eval/evaluation/tasks/sd/routes.yaml
+  file_digests:
+    docs/pipeline_catalog.jsonl: 103a9eecc29886374cdbc3f06e627b20867dc0777ad62a085cb55381a57a92ff
+    src/sure_eval/evaluation/tasks/sd/manifest.yaml: 6817178111b6ead991b674780bc4c81a6390aa0477667aaaacbbde5667dc6359
+    src/sure_eval/evaluation/tasks/sd/routes.yaml: 0f0c4e59ab48eff0a1c5c1d24c84d5b840b6e4594329c6541052dab499fea112
+    src/sure_eval/evaluation/conversion/sd__ear1_submission/manifest.yaml: 0e11d499789bedae28e042bc45a130c47402227f986052aff3678a95ba00b351
+    src/sure_eval/evaluation/nodes/scoring/ear1_scorer/manifest.yaml: 5eac0c4026fab8e2d47a4628183dab4fe26a46a79d95d2c03343b04042f63871
+    docs/tasks/sd.md: af73aebdbda895b0059c7c07fe8bd4750092d83f09d6b475bcb585069bcc5ece
+    src/sure_eval/evaluation/tasks/sa_asr/manifest.yaml: b5e29f5db60b877f0e93df249e66b5fab297eaf1cc4483cf4345e40d41fff142
+    src/sure_eval/evaluation/tasks/sa_asr/routes.yaml: 12c98f25f3bc4be360fd2093c83abf15872d53c36d246e094e2714f832daa0b0
+    src/sure_eval/evaluation/conversion/sa_asr__ear1_submission/manifest.yaml: 39fdb54ac94d008bc26be9ae03d0d6474f23137c710e8769e7765893de4e0607
+    src/sure_eval/evaluation/nodes/normalization/ear1_norm/manifest.yaml: 3fbd8c4d303507521e8ea3db46e2f6aa6a8729bc63141a78d0d4ae9086a820e8
+    docs/tasks/sa_asr.md: c9d6c822006745e170f7ce3de5ad40d63af1fb7badae281b84c48bc7556f9882
+  model: k3.1-pro
+  prompt_version: news_v1
+  copy_origin: manual
+  test_result: 'Local validation on 2026-11-18 against 3853dab1db5d7d44691b25a6620932742a1c0a50:
+    python -m pytest tests/test_ear1_routes.py -q; 13 passed. Both SD/DER and SA-ASR/cpCER
+    match the organizer fixture outputs. Copy manually prepared; no model call.'

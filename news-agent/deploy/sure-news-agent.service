@@ -1,0 +1,22 @@
+[Unit]
+Description=SURE evaluation news agent (independent dry-run)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Install a separate checkout and venv here, or override both paths in a drop-in.
+WorkingDirectory=%h/sure-news-checkout
+ExecStart=%h/sure-news-checkout/news-agent/.venv/bin/sure-news-agent --config %h/.config/sure-news-agent/config.yaml run
+EnvironmentFile=-%h/.config/sure-news-agent/credentials.env
+Environment=PYTHONUNBUFFERED=1
+UMask=0077
+TimeoutStartSec=1800
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/sure-news-checkout %h/.local/state/sure-news-agent
+
+[Install]
+WantedBy=default.target

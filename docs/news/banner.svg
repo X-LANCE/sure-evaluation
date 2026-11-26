@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="184" viewBox="0 0 1120 184" role="img" aria-labelledby="title desc">
+    <title id="title">SURE evaluation release notes</title>
+    <desc id="desc">New evaluation capabilities with explicit pipelines and source evidence.</desc>
+    <rect width="1120" height="184" rx="16" fill="#153f35"/>
+    <g font-family="Arial, Helvetica, sans-serif">
+      <text x="38" y="42" fill="#b6d5c7" font-size="12" font-weight="700" letter-spacing="3">SURE / RELEASE NOTES</text>
+      <text x="36" y="98" fill="#f6f8ef" font-size="39" font-weight="700" letter-spacing="-1">New capabilities. Every step, explained.</text>
+      <text x="38" y="140" fill="#c0d3c8" font-size="15">Exact pipelines · Reproducible evaluation · Source evidence</text>
+      <rect x="946" y="34" width="136" height="116" rx="12" fill="#244d41"/>
+      <text x="1014" y="88" text-anchor="middle" fill="#ddf1ac" font-size="40" font-weight="700">34</text>
+      <text x="1014" y="119" text-anchor="middle" fill="#c0d3c8" font-size="12">evaluation routes</text>
+    </g></svg>

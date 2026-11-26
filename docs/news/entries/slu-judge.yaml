@@ -1,0 +1,51 @@
+title: SLU answer judging
+summary: Grade spoken-language understanding answers against a custom rubric on a
+  0–100 scale.
+limitations: Provide text answers, prompts, a rubric and a configured judge. Scores
+  depend on the rubric.
+pipeline_brief: Answer + rubric → LLM judge → mean score
+id: slu-judge
+revision: 1
+supersedes: null
+status: supported
+published_at: '2026-11-11'
+support:
+  tasks:
+  - slu
+  metrics:
+  - llm_judge
+  pipeline_ids:
+  - slu.any.llm_judge.llm_judge_v1
+chain:
+- task: slu
+  language: n/a
+  metric: llm_judge
+  pipeline_id: slu.any.llm_judge.llm_judge_v1
+  nodes:
+  - id: scoring/llm_judge
+    version: v1
+links:
+  docs:
+  - docs/tasks/slu.md
+  catalog: docs/pipeline_catalog.jsonl
+  source_change: https://github.com/PigeonDan1/sure-evaluation/commit/137fbcc8b89b8c96ca10e641d409808c22165435
+  related_changes: []
+  tests: []
+evidence:
+  source_commit: 137fbcc8b89b8c96ca10e641d409808c22165435
+  source_files:
+  - docs/pipeline_catalog.jsonl
+  - docs/tasks/slu.md
+  - src/sure_eval/evaluation/nodes/scoring/llm_judge/manifest.yaml
+  - src/sure_eval/evaluation/tasks/slu/manifest.yaml
+  - src/sure_eval/evaluation/tasks/slu/routes.yaml
+  file_digests:
+    docs/pipeline_catalog.jsonl: f091b2a822d4625fea3ff548dffd7646d2e9886be78908f10692e58ab887d518
+    src/sure_eval/evaluation/tasks/slu/manifest.yaml: 3391c934082696e1c7b6970a0e9bff392e789a9cda9e6fba5ee1b3bd9d6d8808
+    src/sure_eval/evaluation/tasks/slu/routes.yaml: abf437adb11ba0c876aae801836f4d557faf075e1bf18d40a6156bd6494c0a93
+    src/sure_eval/evaluation/nodes/scoring/llm_judge/manifest.yaml: 03914c7cd4fa8f5c5ab212e0a43663301df489e60f06f5f8c8845251d33017b2
+    docs/tasks/slu.md: 163efe152ef6a0bdd66ea853c7571dd39a803d2c8234a0e383952d30d354e600
+  model: k3.1-pro
+  prompt_version: news_v1
+  copy_origin: manual
+  test_result: Not run by news-agent; see source tests and commit checks.

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="280" viewBox="0 0 760 280" role="img" aria-labelledby="title desc">
+<title id="title">OpenBench speech enhancement</title>
+<desc id="desc">Evaluate enhanced speech for intelligibility, spectral distortion, and predicted quality with optional metrics.</desc>
+<rect x="1" y="1" width="758" height="278" rx="14" fill="#ffffff" stroke="#d4d9df" stroke-width="2"/>
+<rect x="24" y="0" width="72" height="4" rx="2" fill="#111827"/>
+<g font-family="Arial, Helvetica, sans-serif">
+  <text x="28" y="31" fill="#68717d" font-size="11" font-weight="700" letter-spacing="2">RECENT SUPPORT</text>
+  <text x="732" y="31" text-anchor="end" fill="#68717d" font-size="11">02 Nov 2026</text>
+  <text x="28" y="77" fill="#111827" font-family="Georgia,Times New Roman,serif" font-size="29" font-weight="700">OpenBench speech enhancement</text>
+  <text x="28" y="126" fill="#3f4752" font-family="Arial,sans-serif" font-size="14" font-weight="400">Evaluate enhanced speech for intelligibility, spectral distortion, and predicted quality</text><text x="28" y="146" fill="#3f4752" font-family="Arial,sans-serif" font-size="14" font-weight="400">with optional metrics.</text>
+  <line x1="28" y1="168" x2="732" y2="168" stroke="#e1e5e9"/>
+  <text x="28" y="193" fill="#68717d" font-size="10" font-weight="700" letter-spacing="1.4">METRICS</text>
+  <text x="112" y="193" fill="#111827" font-size="13" font-weight="700">DNSMOS_BAK · DNSMOS_P808 · DNSMOS_SIG · ESTOI · +11 more</text>
+  <text x="28" y="217" fill="#68717d" font-size="10" font-weight="700" letter-spacing="1.4">PIPELINE</text>
+  <text x="112" y="217" fill="#111827" font-family="Arial,sans-serif" font-size="12" font-weight="600">Enhanced audio (+ reference as needed) → metric scorer → corpus mean</text>
+  <text x="28" y="264" fill="#68717d" font-size="10">SE · 15 routes</text>
+  <text x="732" y="264" text-anchor="end" fill="#111827" font-size="11" font-weight="700">PR #39 ↗</text>
+</g>
+</svg>
