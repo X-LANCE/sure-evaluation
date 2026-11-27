@@ -1,0 +1,86 @@
+title: FD-Bench dialogue timing
+summary: Measure when a system starts speaking, replies early or interrupts a user.
+limitations: Supply saved user and system speech intervals with the same time origin.
+pipeline_brief: Speech intervals → duplex timeline → IRD, FSED, ERT, EIT
+id: fd-bench
+revision: 1
+supersedes: null
+status: supported
+published_at: '2026-11-12'
+support:
+  tasks:
+  - full_duplex
+  metrics:
+  - eit
+  - ert
+  - fsed
+  - ird
+  pipeline_ids:
+  - full_duplex.any.ird.duplex_timeline_v1.fdbench_timing_v1
+  - full_duplex.any.fsed.duplex_timeline_v1.fdbench_timing_v1
+  - full_duplex.any.ert.duplex_timeline_v1.fdbench_timing_v1
+  - full_duplex.any.eit.duplex_timeline_v1.fdbench_timing_v1
+chain:
+- task: full_duplex
+  language: n/a
+  metric: ird
+  pipeline_id: full_duplex.any.ird.duplex_timeline_v1.fdbench_timing_v1
+  nodes:
+  - id: normalization/duplex_timeline
+    version: v1
+  - id: scoring/fdbench_timing
+    version: v1
+- task: full_duplex
+  language: n/a
+  metric: fsed
+  pipeline_id: full_duplex.any.fsed.duplex_timeline_v1.fdbench_timing_v1
+  nodes:
+  - id: normalization/duplex_timeline
+    version: v1
+  - id: scoring/fdbench_timing
+    version: v1
+- task: full_duplex
+  language: n/a
+  metric: ert
+  pipeline_id: full_duplex.any.ert.duplex_timeline_v1.fdbench_timing_v1
+  nodes:
+  - id: normalization/duplex_timeline
+    version: v1
+  - id: scoring/fdbench_timing
+    version: v1
+- task: full_duplex
+  language: n/a
+  metric: eit
+  pipeline_id: full_duplex.any.eit.duplex_timeline_v1.fdbench_timing_v1
+  nodes:
+  - id: normalization/duplex_timeline
+    version: v1
+  - id: scoring/fdbench_timing
+    version: v1
+links:
+  docs:
+  - docs/tasks/full_duplex.md
+  catalog: docs/pipeline_catalog.jsonl
+  source_change: https://github.com/PigeonDan1/sure-evaluation/commit/549eb711483e7c4e515479864bca8e0abd558572
+  related_changes: []
+  tests: []
+evidence:
+  source_commit: 549eb711483e7c4e515479864bca8e0abd558572
+  source_files:
+  - docs/pipeline_catalog.jsonl
+  - docs/tasks/full_duplex.md
+  - src/sure_eval/evaluation/nodes/normalization/duplex_timeline/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/fdbench_timing/manifest.yaml
+  - src/sure_eval/evaluation/tasks/full_duplex/manifest.yaml
+  - src/sure_eval/evaluation/tasks/full_duplex/routes.yaml
+  file_digests:
+    docs/pipeline_catalog.jsonl: cd91b5dee6e6232cc7802826776baa82fe61fb696b88ad263d382ca7bfeb0479
+    src/sure_eval/evaluation/tasks/full_duplex/manifest.yaml: 9f5b64c6122aceeffcc1d628e2e20a9be537db1b2a8028cd14b92f2d014481a5
+    src/sure_eval/evaluation/tasks/full_duplex/routes.yaml: 51218e97b137ca7021e3ca5b9360184e77adc70c11d97bcdcaa1792ccdf4d23b
+    src/sure_eval/evaluation/nodes/normalization/duplex_timeline/manifest.yaml: e00a6eec5bbe8d71208e60e7b7986a285ff85b06aa6e43990b76da5cc3d6a826
+    src/sure_eval/evaluation/nodes/scoring/fdbench_timing/manifest.yaml: 403f574b72c333dabf80d1607566f4880246f6516794f677a875e01f4e20d2f4
+    docs/tasks/full_duplex.md: cd2ece5d5d04ea3500da600af69bf155fc42116c1b8dc5eb32f0c7c04e1e550c
+  model: k3.1-pro
+  prompt_version: news_v1
+  copy_origin: manual
+  test_result: Not run by news-agent; see source tests and commit checks.

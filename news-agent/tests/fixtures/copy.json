@@ -1,0 +1,5 @@
+{
+  "title": "EAR-1 evaluation support",
+  "summary": "Evaluate EAR-1 SD/DER and Mandarin SA-ASR/cpCER submissions. Submission conversion and the required text normalization feed the organizer scorer, which writes report.json.",
+  "limitations": "Uses v1 nodes and the openbench-integration-0.1 scorer. Install SciPy and provide sessions.json with track D1 or R1. DER uses collar 0 and pools sessions; character-level cpCER is not comparable with cpWER."
+}
