@@ -71,7 +71,7 @@ def main(argv: list[str] | None = None) -> int:
     runner = WhisperLargeV3Transcriber(device=args.device, cache_dir=DEFAULT_CACHE_DIR)
     if args.input_jsonl:
         input_path = Path(args.input_jsonl)
-        for line_no, line in enumerate(input_path.read_text(encoding="utf-8").splitlines(), start=1):
+        for line_no, line in enumerate(input_path.read_text(encoding="utf-8").split("\n"), start=1):
             if not line.strip():
                 continue
             row = json.loads(line)

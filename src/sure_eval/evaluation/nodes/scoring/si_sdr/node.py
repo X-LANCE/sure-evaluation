@@ -237,7 +237,7 @@ def _read_rows(path: str) -> tuple[list[SignalRow], list[str], bool]:
     rows: list[SignalRow] = []
     mixed_paths: list[str] = []
     provider_mode = True
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
+    for line in Path(path).read_text(encoding="utf-8").split("\n"):
         if not line.strip():
             continue
         row = json.loads(line)

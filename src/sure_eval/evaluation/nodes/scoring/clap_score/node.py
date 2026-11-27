@@ -177,7 +177,7 @@ def main(argv=None):
     parser.add_argument("--json", action="store_true", dest="json_output")
     args = parser.parse_args(argv)
     rows = []
-    for line in Path(args.input_jsonl).read_text(encoding="utf-8").splitlines():
+    for line in Path(args.input_jsonl).read_text(encoding="utf-8").split("\n"):
         if line.strip():
             row = json.loads(line)
             rows.append((str(row["key"]), str(row["prediction_audio"]), str(row["caption"])))
