@@ -12,6 +12,7 @@ _TASK_MODULES = {
     "vad": "sure_eval.evaluation.scripts.vad",
     "full_duplex": "sure_eval.evaluation.scripts.full_duplex",
     "doa": "sure_eval.evaluation.scripts.doa",
+    "mer": "sure_eval.evaluation.scripts.mer",
     "lid": "sure_eval.evaluation.scripts.lid",
     "sv": "sure_eval.evaluation.scripts.sv",
     "classification": "sure_eval.evaluation.scripts.classification",

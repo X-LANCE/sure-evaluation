@@ -1,0 +1,17 @@
+id: normalization/mer_jsonl
+version: v1
+stage: normalization
+language_sensitive: false
+input_schema: mer_jsonl_pair
+output_schema: mer_normalized_bundle
+implementation: sure_eval.evaluation.nodes.normalization.mer_jsonl.node
+internal_stages:
+  - jsonl_parse
+  - row_contract
+  - finite_value_validation
+  - exact_key_alignment
+  - timestamp_tolerance_validation
+notes:
+  - Supports static clip-level rows keyed by music_id and dynamic 0.5s frame-level rows keyed by music_id and frame_time.
+  - Both reference and prediction must contain finite valence and arousal numeric values.
+  - Input validation and alignment are internal stages of normalization, not top-level stages.

@@ -1,0 +1,28 @@
+id: scoring/mer_regression
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: mer_normalized_bundle
+output_schema: mer_regression_report
+implementation: sure_eval.evaluation.nodes.scoring.mer_regression.node
+notes:
+  - Computes RMSE, MAE, PCC, R2, and CCC independently for valence and arousal, and reports their mean as the primary score.
+  - Supports both static clip-level evaluation and 0.5-second dynamic time-series evaluation.
+  - Dynamic routes report both micro (pooled across all aligned frames) and macro_song (per-song average) breakdowns.
+metrics:
+  - rmse
+  - mae
+  - pcc
+  - r2
+  - ccc
+  - dynamic_rmse
+  - dynamic_mae
+  - dynamic_pcc
+  - dynamic_r2
+  - dynamic_ccc
+internal_stages:
+  - dimension_extraction
+  - regression_metric_computation
+  - song_grouping
+  - macro_song_aggregation
+  - primary_score_selection
