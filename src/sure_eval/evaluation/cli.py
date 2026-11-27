@@ -197,6 +197,11 @@ def run_metric_pipeline(
     samples_jsonl: Optional[str] = typer.Option(
         None, "--samples-jsonl", help="TTS/TTA/VC/SE/TSE/RIR samples JSONL file"
     ),
+    timing_jsonl: Optional[str] = typer.Option(
+        None,
+        "--timing-jsonl",
+        help="Model-produced timing sidecar consumed by the ASR rtf route",
+    ),
     device: str = typer.Option(
         "cuda", "--device", help="Device passed to audio model runtime builders"
     ),
@@ -241,6 +246,7 @@ def run_metric_pipeline(
             include_roc=include_roc,
             match_tolerance_sec=match_tolerance_sec,
             samples_jsonl=samples_jsonl,
+            timing_jsonl=timing_jsonl,
             device=device,
             cache_dir=cache_dir,
         )

@@ -41,18 +41,24 @@ def describe_pipeline(
 
 
 def run(
-    ref_file: str,
-    hyp_file: str,
     *,
+    output_dir: str,
+    ref_file: str | None = None,
+    hyp_file: str | None = None,
+    timing_jsonl: str | None = None,
     language: str | None = None,
     metric: str | None = None,
     pipeline_id: str | None = None,
-    output_dir: str,
 ):
     """Execute the configured ASR task route.
 
-    The ``output_dir`` argument is required by the script contract even though
-    the current in-process pipeline returns its report directly.
+    Two input shapes exist under the ASR task:
+
+    - text routes (cer/wer/mer) consume ``ref_file`` + ``hyp_file``;
+    - the performance route (rtf) consumes a ``timing_jsonl`` sidecar only.
+
+    ``output_dir`` is required by the script contract even though the in-process
+    pipeline returns its report directly.
     """
 
     if not output_dir:
@@ -61,14 +67,28 @@ def run(
     _, _, _, route, executor_metric = _select_route(
         language=language, metric=metric, pipeline_id=pipeline_id
     )
-    report = call_route_executor(
-        route,
-        ref_file=ref_file,
-        hyp_file=hyp_file,
-        language=route.get("language") or language or description.language,
-        metric=executor_metric,
-        **_executor_selectors_from_route(route),
-    )
+    route_nodes = tuple(route.get("nodes") or ())
+    if "scoring/streaming_rtf" in route_nodes:
+        if not timing_jsonl:
+            raise ValueError(
+                "the rtf route requires --timing-jsonl (a model-produced timing sidecar); "
+                "ref_file/hyp_file are not inputs of this route"
+            )
+        report = call_route_executor(
+            route,
+            timing_jsonl=timing_jsonl,
+            language=route.get("language") or language or "en",
+            metric=executor_metric,
+        )
+    else:
+        report = call_route_executor(
+            route,
+            ref_file=ref_file,
+            hyp_file=hyp_file,
+            language=route.get("language") or language or description.language,
+            metric=executor_metric,
+            **_executor_selectors_from_route(route),
+        )
     return write_route_run_outputs(report=report, description=description, output_dir=output_dir)
 
 

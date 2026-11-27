@@ -202,6 +202,13 @@ input_contracts:
     alignment_key: key
     aggregation: corpus_token_edit_distance
     main_report: true
+  rtf_timing_jsonl:
+    purpose: streaming_real_time_factor
+    required_roles: [timing_jsonl]
+    row_format: rtf_timing_jsonl
+    alignment_key: key
+    aggregation: duration_weighted_ratio
+    main_report: true
 legacy_reference:
   evaluator: sure_eval.evaluation.sure_evaluator.SUREEvaluator
   methods:

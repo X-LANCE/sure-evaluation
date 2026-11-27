@@ -28,6 +28,7 @@ ROLE_TO_CLI_ARG = {
     "wekws_frame_score_file": "wekws_frame_score_file",
     "keyword": "keyword",
     "samples_jsonl": "samples_jsonl",
+    "timing_jsonl": "timing_jsonl",
 }
 
 TASK_ALIASES = {
@@ -407,6 +408,7 @@ def run_pipeline_spec(
     include_roc: bool | None = None,
     match_tolerance_sec: float | None = None,
     samples_jsonl: str | None = None,
+    timing_jsonl: str | None = None,
     device: str = "cuda",
     cache_dir: str | None = None,
 ) -> dict[str, Any]:
@@ -444,6 +446,7 @@ def run_pipeline_spec(
         "wekws_frame_score_file": wekws_frame_score_file,
         "keyword": keyword,
         "samples_jsonl": samples_jsonl,
+        "timing_jsonl": timing_jsonl,
     }
     if task != "doa":
         for key in (

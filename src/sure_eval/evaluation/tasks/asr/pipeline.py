@@ -50,6 +50,10 @@ from sure_eval.evaluation.nodes.scoring.sctk_sclite import (
     score_sctk_sclite_cer,
     score_sctk_sclite_wer,
 )
+from sure_eval.evaluation.nodes.scoring.streaming_rtf import (
+    load_timing,
+    score_streaming_rtf,
+)
 from sure_eval.evaluation.nodes.scoring.token_cer import score_token_cer
 from sure_eval.evaluation.nodes.scoring.token_mer import score_token_mer
 from sure_eval.evaluation.nodes.scoring.wenet_wer import (
@@ -104,6 +108,62 @@ _ASR_CONTRACTS = {
 }
 
 _CANONICAL_METRICS = {"cer_canonical", "mer_canonical", "wer_canonical"}
+
+_RTF_CONTRACT = MetricInputContract(
+    metric_id="scoring/streaming_rtf",
+    required_roles=("timing_jsonl",),
+    row_format="rtf_timing_jsonl",
+    alignment_key="key",
+    aggregation="duration_weighted_ratio",
+    purpose="streaming_real_time_factor",
+)
+
+
+def evaluate_rtf_files(
+    *,
+    timing_jsonl: str,
+    metric: str = "rtf",
+    language: str = "en",
+    **_ignored: object,
+) -> EvaluationReport:
+    """Score streaming RTF from a model-produced timing sidecar.
+
+    This route consumes timings only: it never loads a model or reads audio, so
+    scoring the same sidecar twice is deterministic. Correctness of the
+    transcript is out of scope here and must come from a WER route on the same
+    predictions.
+    """
+
+    if metric.lower() != "rtf":
+        raise ValueError(f"evaluate_rtf_files only supports metric='rtf', got {metric!r}")
+
+    input_files = EvaluationFiles(roles={"timing_jsonl": str(timing_jsonl)})
+    _RTF_CONTRACT.validate(input_files)
+
+    bundle = load_timing(timing_jsonl)
+    _, node_result = score_streaming_rtf(bundle)
+    details = node_result.details["result"]
+
+    components = (node_component("scoring/streaming_rtf"),)
+    pipeline_id = build_atomic_pipeline_id("asr", language, "rtf", components)
+
+    return EvaluationReport(
+        task="ASR",
+        language=language,
+        metric="rtf",
+        score=float(details["score"]),
+        pipeline_id=pipeline_id,
+        pipeline_trace=(node_result,),
+        input_contract=_RTF_CONTRACT,
+        input_files=input_files,
+        computation_node_ids=component_trace_ids(components),
+        details={
+            "scoring_result": details,
+            "execution_metric": "rtf",
+            "input_contract": _RTF_CONTRACT.as_dict(),
+            "input_files": input_files.as_dict(),
+        },
+    )
 
 
 def evaluate_asr_files(
