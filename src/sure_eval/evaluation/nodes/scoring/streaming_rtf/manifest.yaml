@@ -1,0 +1,21 @@
+id: scoring/streaming_rtf
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: rtf_timing_jsonl
+output_schema: rtf_metrics
+implementation: sure_eval.evaluation.nodes.scoring.streaming_rtf.node
+metrics:
+  - rtf
+internal_stages:
+  - jsonl_parse
+  - protocol_check
+  - aggregate
+  - percentile
+  - bucket_summary
+notes:
+  - RTF numerator is model compute time from the timing sidecar; denominator is audio duration derived from audio_samples at 16 kHz.
+  - rtf_avg is weighted (sum compute / sum audio), never a mean of per-utterance ratios.
+  - rtf_chunk_p99 is the real-time criterion; an average below 1.0 does not prove the model keeps up.
+  - Runs that mix chunk sizes, feed sizes, or thread counts are rejected because such a run has no single measurement protocol.
+  - Tail padding is counted in the numerator and excluded from the denominator by construction of the sidecar.
