@@ -70,12 +70,12 @@ def candidates(base, head, entries):
 
 def build_output(config, head, entries, new, source_repository, target_repository):
     output = render(entries + new, head.read("README.md"), source_root=head.root,
-                    site_repository=config.site_repository or target_repository, pages_url=config.site_url)
+                    site_repository=config.site_repository or target_repository, pages_url=config.pages_url)
     for entry in new:
         validate_entry(entry, config.checkout, source_repository)
         output[f"docs/news/entries/{entry.id}.yaml"] = dump_entry(entry)
     before = {p: head.read(p) for p in output if head.exists(p)}
-    validate_output(before, output, head.exists, pages_url=config.site_url)
+    validate_output(before, output, head.exists, pages_url=config.pages_url)
     return before, output
 
 

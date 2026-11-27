@@ -73,9 +73,9 @@ true` and verify `repository`, `remote`, `base_branch` and `ref` match the
 intended source and publication repository.
 
 `site_repository` controls the release page's repository links and defaults to
-`repository`. `pages_url` controls the README's release-history link and
-defaults to `https://<owner in lowercase>.github.io/<repository name>/` for that
-site repository. For example, an upstream installation can explicitly use:
+`repository`. `pages_url` optionally controls the README's release-history link.
+When it is omitted, the README links to the checked-in Markdown history instead
+of assuming that GitHub Pages is enabled. An installation with Pages can use:
 
 ```yaml
 repository: PigeonDan1/sure-evaluation
@@ -194,9 +194,8 @@ A deployment may schedule `poll` with its own source, target and mode. The packa
 Check its state with `systemctl --user status news-agent.timer` and its output
 with `journalctl --user -u news-agent.service`.
 
-`.github/workflows/announcement-pages.yml` deploys the generated `docs/news/`
-site after relevant `main` pushes or a manual workflow dispatch. Repository
-Pages settings and permissions must allow that workflow. The deployment copies
-existing artifacts; it does not call Kimi or run the poller. Announcement CI
-checks the package and generated files without publishing. Installing or
+The package does not enable or require GitHub Pages. A deployment may configure
+an external static host or a separate repository to serve `docs/news/`; the
+generated artifacts remain usable as checked-in Markdown and HTML. Announcement
+CI checks the package and generated files without publishing. Installing or
 changing a remote scheduled publisher remains a separate maintainer action.

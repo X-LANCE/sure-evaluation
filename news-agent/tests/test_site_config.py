@@ -22,7 +22,7 @@ def test_fork_site_links_are_separate_from_source_evidence(facts, copy):
     assert 'href="https://github.com/example/sure-evaluation"' in output["docs/news/index.html"]
     assert entry.links.source_change in output["docs/news/index.html"]
     assert "https://github.com/PigeonDan1/sure-evaluation/pull/49" in output["README.md"]
-    validate_output(before, output, lambda p: (ROOT / p).is_file(), pages_url=config.site_url)
+    validate_output(before, output, lambda p: (ROOT / p).is_file(), pages_url=config.pages_url)
     with pytest.raises(ValueError, match="Unexpected external announcement link"):
         validate_output(before, output, lambda p: (ROOT / p).is_file())
 
@@ -30,6 +30,13 @@ def test_fork_site_links_are_separate_from_source_evidence(facts, copy):
 def test_site_url_defaults_follow_configured_repository():
     assert Config().site_url == default_pages_url("PigeonDan1/sure-evaluation")
     assert Config(repository="AnotherOwner/project").site_url == "https://anotherowner.github.io/project/"
+
+
+def test_readme_uses_checked_in_release_notes_without_pages_url(facts, copy):
+    entry = make_entry(facts, copy, repository="PigeonDan1/sure-evaluation",
+                       entry_id="local-history-test", published_at=date(2026, 11, 26))
+    _, output = prepare(ROOT, "PigeonDan1/sure-evaluation", entry=entry, pages_url=None)
+    assert "[View announcement history ↗](./docs/news/index.md)" in output["README.md"]
 
 
 @pytest.mark.parametrize("url", [
