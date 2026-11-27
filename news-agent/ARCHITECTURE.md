@@ -21,7 +21,7 @@ flowchart TD
     Guard --> Preview[Local preview]
     Guard --> Publish[Documentation-only publication]
     Publish --> README[README cards and release-note artifacts]
-    README --> Pages[GitHub Pages deploys docs/news]
+    README --> Static[Optional static host serves docs/news]
 ```
 
 `run` and `poll` share evidence validation, rendering and output
@@ -129,8 +129,9 @@ CSS. The standalone page keeps one full timeline under `#updates` with task
 filters, keyword search, language/theme controls and expandable exact routes.
 It has no duplicate recent-support card rail.
 
-The Pages workflow copies `docs/news/` to the deployed site when the generated
-site changes on `main`, or on manual dispatch. It does not generate model copy.
+An optional static-host workflow may serve `docs/news/` when the generated site
+changes on `main`. The package does not require or enable GitHub Pages and does
+not generate model copy during deployment.
 The generic systemd templates schedule `run` every 30 minutes; the existing
 configured installation independently schedules `poll` every six hours.
 Neither service is installed or enabled by package installation.

@@ -7,7 +7,7 @@ from textwrap import wrap
 from .contract import Entry
 from .web import METRICS, PR_NUMBERS, pipeline_brief, pr_url, task_label
 
-PAGES = "https://example.github.io/sure-evaluation/"
+PAGES = "./docs/news/index.md"
 CARD_SUMMARIES = {
     "ear-1": "Score EAR-1 submissions for speaker diarization with DER and Mandarin speaker-attributed ASR with cpCER.",
     "ear-1-scoring": "Score EAR-1 submissions for speaker diarization with DER and Mandarin speaker-attributed ASR with cpCER.",
@@ -79,7 +79,7 @@ def tile(entry: Entry, *, pr_numbers: Mapping[str, int] | None = None) -> str:
 
 
 def readme_board(entries: list[Entry], *, pr_numbers: Mapping[str, int] | None = None,
-                 pages_url: str = PAGES
+                 pages_url: str | None = None
                  ) -> tuple[str, dict[str, str]]:
     """Render newest-first cards in GitHub's native horizontal README scroller."""
     if not entries:
@@ -98,5 +98,6 @@ def readme_board(entries: list[Entry], *, pr_numbers: Mapping[str, int] | None =
         )
 
     strip = "<pre>" + "".join(links) + "</pre>"
-    board = f"## Latest evaluation support\n\n{strip}\n\n[View announcement history ↗]({pages_url})\n"
+    board = (f"## Latest evaluation support\n\n{strip}\n\n"
+             f"[View announcement history ↗]({pages_url or PAGES})\n")
     return board, assets

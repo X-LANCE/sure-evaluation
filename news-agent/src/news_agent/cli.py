@@ -10,7 +10,7 @@ from pathlib import Path
 import yaml
 
 from . import MODEL, PROMPT_VERSION
-from .config import default_pages_url, load_config
+from .config import load_config
 from .contract import Copy, Entry, load_entries, make_entry, validate_entry
 from .detector import feature_changes
 from .git import Snapshot, git
@@ -68,7 +68,6 @@ def prepare(root: Path, repository: str, *, snapshot: Snapshot | None = None,
         if not prior:
             entries.append(entry)
     site_repository = site_repository or repository
-    pages_url = pages_url or default_pages_url(site_repository)
     output = render(entries, read("README.md"), source_root=root,
                     site_repository=site_repository, pages_url=pages_url)
     if entry:
@@ -140,7 +139,7 @@ def run_cycle(config, *, since: str | None = None, copy_file: Path | None = None
                                              snapshot=head, entry=entry,
                                              preview_from_working_tree=config.preview_from_working_tree,
                                              site_repository=config.site_repository,
-                                             pages_url=config.site_url)
+                                             pages_url=config.pages_url)
                     if config.mode == "dry-run":
                         result = str(preview(config.state_dir / "previews" / key, before, output))
                         status = "preview"
@@ -211,7 +210,7 @@ def main(argv=None) -> int:
                 result["smoke"] = KimiClient(config).generate(frozen).model_dump()
         else:
             before, output = prepare(config.checkout, config.repository,
-                                     site_repository=config.site_repository, pages_url=config.site_url)
+                                     site_repository=config.site_repository, pages_url=config.pages_url)
             if args.command == "check":
                 stale = [p for p, content in output.items() if before.get(p) != content]
                 if stale:

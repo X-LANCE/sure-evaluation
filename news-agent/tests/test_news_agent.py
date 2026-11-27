@@ -331,7 +331,7 @@ def test_manual_entries_and_generated_pages_are_current():
     entries = load_entries(ROOT, config.repository)
     assert {"ear-1", "ear-1-scoring", "etc-bench", "fd-bench", "slu-judge", "openbench-se"} <= {e.id for e in entries}
     before, output = prepare(ROOT, config.repository, site_repository=config.site_repository,
-                             pages_url=config.site_url)
+                             pages_url=config.pages_url)
     assert all(before[p] == content for p, content in output.items())
 
 

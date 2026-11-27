@@ -20,7 +20,7 @@
 
 <pre><a href="https://github.com/PigeonDan1/sure-evaluation/pull/47"><img src="./docs/news/cards/ear-1-scoring.svg" width="760" alt="EAR-1 challenge scoring · Score EAR-1 submissions for speaker diarization with DER and Mandarin speaker-attributed ASR with cpCER. · cpCER · DER"></a><a href="https://github.com/PigeonDan1/sure-evaluation/pull/44"><img src="./docs/news/cards/fd-bench.svg" width="760" alt="FD-Bench dialogue timing · Evaluate full-duplex dialogue timing by measuring response start, early reply, and interruption behavior. · EIT · ERT · FSED · IRD"></a><a href="https://github.com/PigeonDan1/sure-evaluation/pull/38"><img src="./docs/news/cards/slu-judge.svg" width="760" alt="SLU answer judging · Score spoken-language understanding answers against a custom rubric with an API-based LLM judge. · LLM_JUDGE"></a><a href="https://github.com/PigeonDan1/sure-evaluation/pull/40"><img src="./docs/news/cards/etc-bench.svg" width="760" alt="ETC-Bench transcript scoring · Canonicalize equivalent transcript forms in 12 languages before CER or WER scoring. · CER · WER"></a><a href="https://github.com/PigeonDan1/sure-evaluation/pull/39"><img src="./docs/news/cards/openbench-se.svg" width="760" alt="OpenBench speech enhancement · Evaluate enhanced speech for intelligibility, spectral distortion, and predicted quality with optional metrics. · DNSMOS_BAK · DNSMOS_P808 · DNSMOS_SIG · ESTOI · +11 more"></a></pre>
 
-[View announcement history ↗](https://x-lance.github.io/sure-evaluation/)
+[View announcement history ↗](./docs/news/index.md)
 
 <!-- SURE-NEWS:END -->
 

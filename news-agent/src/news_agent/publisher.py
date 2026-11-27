@@ -14,7 +14,6 @@ from urllib.parse import unquote, urlsplit
 
 from .config import Config
 from .git import Snapshot, git, safe_path
-from .readme_cards import PAGES
 from .renderer import END, START, diff, outside_block
 
 
@@ -43,7 +42,7 @@ class PageLinks(HTMLParser):
                 self.ids.append(value)
 
 
-def validate_output(before: dict[str, str], after: dict[str, str], exists, *, pages_url: str = PAGES) -> None:
+def validate_output(before: dict[str, str], after: dict[str, str], exists, *, pages_url: str | None = None) -> None:
     for path, content in after.items():
         if not allowed(path):
             raise ValueError(f"Publisher cannot write {path}")
@@ -64,7 +63,7 @@ def validate_output(before: dict[str, str], after: dict[str, str], exists, *, pa
         targets = page.targets + re.findall(r"\]\(([^\s)]+)\)", checked)
         for target in targets:
             parts = urlsplit(target)
-            if parts._replace(fragment="").geturl() == pages_url:
+            if pages_url and parts._replace(fragment="").geturl() == pages_url:
                 if parts.fragment:
                     anchors = PageLinks()
                     anchors.feed(after["docs/news/index.html"])
@@ -138,7 +137,7 @@ def publish(config: Config, head: Snapshot, key: str, output: dict[str, str]) ->
     if config.mode == "dry-run":
         raise ValueError("dry-run cannot enter the remote publisher")
     before = {path: head.read(path) for path in output if head.exists(path)}
-    validate_output(before, output, head.exists, pages_url=config.site_url)
+    validate_output(before, output, head.exists, pages_url=config.pages_url)
     branch = "news-agent/" + key[:20]
     # Recover a PR created before a state write failed.
     if config.mode == "pr":

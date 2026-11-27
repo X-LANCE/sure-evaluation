@@ -6,9 +6,10 @@ source_branch: main
 target_repository: PigeonDan1/sure-evaluation
 target_branch: main
 poll_mode: dry-run
-# Canonical upstream display links. These do not select a push target.
+# Optional display repository and Pages URL. Without pages_url, README links to
+# the checked-in Markdown release notes instead of assuming GitHub Pages.
 site_repository: X-LANCE/sure-evaluation
-pages_url: https://x-lance.github.io/sure-evaluation/
+# pages_url: https://x-lance.github.io/sure-evaluation/
 checkout: ..
 base_branch: main
 remote: origin

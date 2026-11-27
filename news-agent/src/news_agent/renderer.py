@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 from .contract import Entry
-from .readme_cards import PAGES, readme_board
+from .readme_cards import readme_board
 from .web import METRICS, node_label, render_banner, render_page, resolve_pr_numbers, source_link, task_label
 
 START = "<!-- SURE-NEWS:START -->"
@@ -80,7 +80,7 @@ def section(entry: Entry, *, prefix: str, short: bool = False) -> str:
 
 def render(entries: list[Entry], readme: str, *, source_root: Path | None = None,
            site_repository: str | None = None,
-           pages_url: str = PAGES) -> dict[str, str]:
+           pages_url: str | None = None) -> dict[str, str]:
     entries = sorted(entries, key=lambda e: (e.published_at, e.id), reverse=True)
     superseded = {e.supersedes for e in entries if e.supersedes}
     latest = [e for e in entries if e.id not in superseded][:5]
