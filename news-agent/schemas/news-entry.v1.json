@@ -1,0 +1,375 @@
+{
+  "$defs": {
+    "Chain": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Task",
+          "type": "string"
+        },
+        "language": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Language",
+          "type": "string"
+        },
+        "metric": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "pipeline_id": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Pipeline Id",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/Node"
+          },
+          "minItems": 1,
+          "title": "Nodes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "task",
+        "language",
+        "metric",
+        "pipeline_id",
+        "nodes"
+      ],
+      "title": "Chain",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "source_commit": {
+          "pattern": "^[a-f0-9]{40,64}$",
+          "title": "Source Commit",
+          "type": "string"
+        },
+        "source_files": {
+          "items": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Files",
+          "type": "array"
+        },
+        "file_digests": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "File Digests",
+          "type": "object"
+        },
+        "model": {
+          "const": "k3.1-pro",
+          "title": "Model",
+          "type": "string"
+        },
+        "prompt_version": {
+          "const": "news_v1",
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "copy_origin": {
+          "enum": [
+            "model",
+            "manual"
+          ],
+          "title": "Copy Origin",
+          "type": "string"
+        },
+        "test_result": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Test Result",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_commit",
+        "source_files",
+        "file_digests",
+        "model",
+        "prompt_version",
+        "copy_origin",
+        "test_result"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Links": {
+      "additionalProperties": false,
+      "properties": {
+        "docs": {
+          "items": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Docs",
+          "type": "array"
+        },
+        "catalog": {
+          "const": "docs/pipeline_catalog.jsonl",
+          "title": "Catalog",
+          "type": "string"
+        },
+        "source_change": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Source Change",
+          "type": "string"
+        },
+        "related_changes": {
+          "items": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Related Changes",
+          "type": "array"
+        },
+        "tests": {
+          "items": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Tests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "docs",
+        "catalog",
+        "source_change"
+      ],
+      "title": "Links",
+      "type": "object"
+    },
+    "LocalizedCopy": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "limitations": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Limitations",
+          "type": "string"
+        },
+        "brief": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Brief",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "summary",
+        "limitations",
+        "brief"
+      ],
+      "title": "LocalizedCopy",
+      "type": "object"
+    },
+    "Node": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "title": "Node",
+      "type": "object"
+    },
+    "Support": {
+      "additionalProperties": false,
+      "properties": {
+        "tasks": {
+          "items": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Tasks",
+          "type": "array"
+        },
+        "metrics": {
+          "items": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Metrics",
+          "type": "array"
+        },
+        "pipeline_ids": {
+          "items": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Pipeline Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tasks",
+        "metrics",
+        "pipeline_ids"
+      ],
+      "title": "Support",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "title": {
+      "maxLength": 3000,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "summary": {
+      "maxLength": 3000,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "limitations": {
+      "maxLength": 3000,
+      "minLength": 1,
+      "title": "Limitations",
+      "type": "string"
+    },
+    "zh": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LocalizedCopy"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "pipeline_brief": {
+      "anyOf": [
+        {
+          "maxLength": 3000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pipeline Brief"
+    },
+    "id": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "revision": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes"
+    },
+    "status": {
+      "const": "supported",
+      "default": "supported",
+      "title": "Status",
+      "type": "string"
+    },
+    "published_at": {
+      "format": "date",
+      "title": "Published At",
+      "type": "string"
+    },
+    "support": {
+      "$ref": "#/$defs/Support"
+    },
+    "chain": {
+      "items": {
+        "$ref": "#/$defs/Chain"
+      },
+      "minItems": 1,
+      "title": "Chain",
+      "type": "array"
+    },
+    "links": {
+      "$ref": "#/$defs/Links"
+    },
+    "evidence": {
+      "$ref": "#/$defs/Evidence"
+    }
+  },
+  "required": [
+    "title",
+    "summary",
+    "limitations",
+    "id",
+    "published_at",
+    "support",
+    "chain",
+    "links",
+    "evidence"
+  ],
+  "title": "Entry",
+  "type": "object"
+}

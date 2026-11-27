@@ -1,0 +1,25 @@
+# Paths resolve relative to this file. No other agent's settings or .env are loaded.
+# Keep the historical source alias used by immutable announcement evidence.
+repository: PigeonDan1/sure-evaluation
+source_repository: PigeonDan1/sure-evaluation
+source_branch: main
+target_repository: PigeonDan1/sure-evaluation
+target_branch: main
+poll_mode: dry-run
+# Canonical upstream display links. These do not select a push target.
+site_repository: X-LANCE/sure-evaluation
+pages_url: https://x-lance.github.io/sure-evaluation/
+checkout: ..
+base_branch: main
+remote: origin
+ref: refs/remotes/origin/main
+fetch: false
+mode: dry-run
+# Enable only in an isolated dry-run checkout before announcement templates merge.
+preview_from_working_tree: false
+state_dir: state
+log_dir: logs
+endpoint: https://api.kimi.com/coding/v1
+timeout_seconds: 300
+attempts: 3
+max_output_tokens: 4000

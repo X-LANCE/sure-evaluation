@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>仓库公告效果预览 · SURE Evaluation</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf0ed;color:#20372c;font:14px/1.5 system-ui,sans-serif}header{background:#fff;border-bottom:1px solid #dce3dc;padding:16px 24px 12px}.heading{display:flex;justify-content:space-between;gap:16px;align-items:center}.heading strong{font-size:16px}.local{font-size:11px;color:#6a756e;border:1px solid #dce3dc;border-radius:5px;padding:3px 8px}.controls{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-top:14px}.tabs{display:flex;gap:5px;flex-wrap:wrap}button,a{font:inherit}button{cursor:pointer}.tab{padding:8px 14px;border:1px solid transparent;background:transparent;border-radius:6px;color:#627168;font-size:13px}.tab[aria-selected=true]{background:#eaf2e7;border-color:#c8d8c3;color:#23583f;font-weight:600}.tools{display:flex;gap:8px;align-items:center;flex-shrink:0}.tools button,.tools a{font-size:11px;border:1px solid #dce3dc;border-radius:5px;background:#fff;color:#47604f;padding:6px 9px;text-decoration:none}.tools button[aria-pressed=true]{border-color:#739b69;background:#f1f6ee}.hint{margin:11px 0 0;font-size:12px;color:#66746a}.stage{height:calc(100dvh - 157px);min-height:400px;padding:18px;display:flex;justify-content:center}iframe{border:1px solid #dce3dc;border-radius:8px;width:100%;max-width:1400px;height:100%;background:#fff;box-shadow:0 4px 20px #1e38250a}.stage.mobile iframe{max-width:390px}.stage.mobile{background:#dfe5de}button:focus-visible,a:focus-visible{outline:3px solid #8dad80;outline-offset:2px}@media(max-width:720px){header{padding:12px}.heading strong{font-size:14px}.local{font-size:10px}.controls{align-items:flex-start;gap:10px;flex-wrap:wrap;margin-top:10px}.tab{font-size:12px;padding:7px 10px}.tools{margin-left:auto}.hint{font-size:11px}.stage{padding:8px;height:calc(100dvh - 190px)}}
+</style>
+</head>
+<body>
+<header><div class="heading"><strong>SURE · 仓库公告效果预览</strong><span class="local">当前工作区 · 未提交</span></div>
+<div class="controls"><div class="tabs" role="tablist" aria-label="预览内容">
+<button class="tab" id="tab-readme" type="button" role="tab" data-view="readme" aria-selected="true" aria-controls="preview">仓库 README</button>
+<button class="tab" id="tab-news" type="button" role="tab" data-view="news" aria-selected="false" aria-controls="preview">公告历史</button>
+<button class="tab" id="tab-web" type="button" role="tab" data-view="web" aria-selected="false" aria-controls="preview">独立网页</button>
+</div><div class="tools"><button type="button" id="jump">定位公告</button><button type="button" data-width="desktop" aria-pressed="true">桌面</button><button type="button" data-width="mobile" aria-pressed="false">手机</button><a id="open-page" href="readme.html" target="_blank" rel="noopener">单独打开 ↗</a></div></div>
+<p class="hint" id="hint">直接渲染当前 README.md，查看公告在仓库首页中的位置；排版模拟 GitHub，折叠详情可以点击展开。</p>
+</header>
+<main class="stage"><iframe id="preview" title="仓库 README 渲染预览" src="readme.html" role="tabpanel" aria-labelledby="tab-readme"></iframe></main>
+<script>
+(()=>{
+const views={readme:{path:'readme.html',hint:'直接渲染当前 README.md，查看公告在仓库首页中的位置；排版模拟 GitHub，折叠详情可以点击展开。',title:'仓库 README 渲染预览'},news:{path:'news-history.html',hint:'直接渲染 docs/news/index.md，查看仓库内的完整公告历史、评测路线与来源证据。',title:'仓库公告历史渲染预览'},web:{path:'announcement.html',hint:'独立的交互公告网页，可以切换深浅色、筛选任务和复制 pipeline ID。',title:'独立公告网页'}};
+const frame=document.querySelector('iframe'),stage=document.querySelector('.stage'),tabs=[...document.querySelectorAll('[data-view]')];let current='readme';
+function select(view,navigate=true){if(!views[view])view='readme';current=view;for(const tab of tabs)tab.setAttribute('aria-selected',String(tab.dataset.view===view));if(navigate)frame.src=views[view].path;frame.title=views[view].title;frame.setAttribute('aria-labelledby','tab-'+view);document.querySelector('#hint').textContent=views[view].hint;document.querySelector('#jump').hidden=view!=='readme';document.querySelector('#open-page').href=views[view].path;history.replaceState(null,'','?view='+view)}
+frame.addEventListener('load',()=>{try{const filename=frame.contentWindow.location.pathname.split('/').pop();for(const [view,item]of Object.entries(views))if(item.path===filename&&view!==current)select(view,false)}catch(_){}});
+for(const tab of tabs)tab.addEventListener('click',()=>select(tab.dataset.view));
+document.querySelector('#jump').addEventListener('click',()=>{frame.src=views[current].path+'#repo-news'});
+for(const button of document.querySelectorAll('[data-width]'))button.addEventListener('click',()=>{stage.classList.toggle('mobile',button.dataset.width==='mobile');for(const other of document.querySelectorAll('[data-width]'))other.setAttribute('aria-pressed',String(other===button))});
+select(new URLSearchParams(location.search).get('view')||'readme');
+})();
+</script>
+</body></html>

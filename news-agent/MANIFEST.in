@@ -1,0 +1,5 @@
+include config.yaml.example
+recursive-include deploy *.service *.timer
+recursive-include deploy *.html *.py
+recursive-include schemas *.json
+recursive-include tests *.py *.json

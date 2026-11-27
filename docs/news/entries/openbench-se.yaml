@@ -1,0 +1,205 @@
+title: OpenBench speech enhancement
+summary: Score intelligibility, spectral distortion and predicted speech quality with
+  opt-in metrics.
+limitations: Reference-based metrics require aligned clean audio. Learned quality
+  estimates depend on the selected model.
+pipeline_brief: Enhanced audio (+ reference as needed) → metric scorer → corpus mean
+id: openbench-se
+revision: 1
+supersedes: null
+status: supported
+published_at: '2026-11-02'
+support:
+  tasks:
+  - se
+  metrics:
+  - dnsmos_bak
+  - dnsmos_p808
+  - dnsmos_sig
+  - estoi
+  - lps
+  - lsd
+  - nisqa_col
+  - nisqa_dis
+  - nisqa_loud
+  - nisqa_mos
+  - nisqa_noi
+  - nsrmr
+  - squim_pesq
+  - squim_si_sdr
+  - squim_stoi
+  pipeline_ids:
+  - se.any.estoi.estoi_v1
+  - se.any.lsd.lsd_v1
+  - se.any.lps.lps_v1
+  - se.any.dnsmos_p808.dnsmos_p808_v1
+  - se.any.dnsmos_sig.dnsmos_sig_v1
+  - se.any.dnsmos_bak.dnsmos_bak_v1
+  - se.any.nsrmr.nsrmr_v1
+  - se.any.squim_stoi.squim_stoi_v1
+  - se.any.squim_pesq.squim_pesq_v1
+  - se.any.squim_si_sdr.squim_si_sdr_v1
+  - se.any.nisqa_mos.nisqa_mos_v1
+  - se.any.nisqa_noi.nisqa_noi_v1
+  - se.any.nisqa_dis.nisqa_dis_v1
+  - se.any.nisqa_col.nisqa_col_v1
+  - se.any.nisqa_loud.nisqa_loud_v1
+chain:
+- task: se
+  language: n/a
+  metric: estoi
+  pipeline_id: se.any.estoi.estoi_v1
+  nodes:
+  - id: scoring/estoi
+    version: v1
+- task: se
+  language: n/a
+  metric: lsd
+  pipeline_id: se.any.lsd.lsd_v1
+  nodes:
+  - id: scoring/lsd
+    version: v1
+- task: se
+  language: n/a
+  metric: lps
+  pipeline_id: se.any.lps.lps_v1
+  nodes:
+  - id: scoring/lps
+    version: v1
+- task: se
+  language: n/a
+  metric: dnsmos_p808
+  pipeline_id: se.any.dnsmos_p808.dnsmos_p808_v1
+  nodes:
+  - id: scoring/dnsmos_p808
+    version: v1
+- task: se
+  language: n/a
+  metric: dnsmos_sig
+  pipeline_id: se.any.dnsmos_sig.dnsmos_sig_v1
+  nodes:
+  - id: scoring/dnsmos_sig
+    version: v1
+- task: se
+  language: n/a
+  metric: dnsmos_bak
+  pipeline_id: se.any.dnsmos_bak.dnsmos_bak_v1
+  nodes:
+  - id: scoring/dnsmos_bak
+    version: v1
+- task: se
+  language: n/a
+  metric: nsrmr
+  pipeline_id: se.any.nsrmr.nsrmr_v1
+  nodes:
+  - id: scoring/nsrmr
+    version: v1
+- task: se
+  language: n/a
+  metric: squim_stoi
+  pipeline_id: se.any.squim_stoi.squim_stoi_v1
+  nodes:
+  - id: scoring/squim_stoi
+    version: v1
+- task: se
+  language: n/a
+  metric: squim_pesq
+  pipeline_id: se.any.squim_pesq.squim_pesq_v1
+  nodes:
+  - id: scoring/squim_pesq
+    version: v1
+- task: se
+  language: n/a
+  metric: squim_si_sdr
+  pipeline_id: se.any.squim_si_sdr.squim_si_sdr_v1
+  nodes:
+  - id: scoring/squim_si_sdr
+    version: v1
+- task: se
+  language: n/a
+  metric: nisqa_mos
+  pipeline_id: se.any.nisqa_mos.nisqa_mos_v1
+  nodes:
+  - id: scoring/nisqa_mos
+    version: v1
+- task: se
+  language: n/a
+  metric: nisqa_noi
+  pipeline_id: se.any.nisqa_noi.nisqa_noi_v1
+  nodes:
+  - id: scoring/nisqa_noi
+    version: v1
+- task: se
+  language: n/a
+  metric: nisqa_dis
+  pipeline_id: se.any.nisqa_dis.nisqa_dis_v1
+  nodes:
+  - id: scoring/nisqa_dis
+    version: v1
+- task: se
+  language: n/a
+  metric: nisqa_col
+  pipeline_id: se.any.nisqa_col.nisqa_col_v1
+  nodes:
+  - id: scoring/nisqa_col
+    version: v1
+- task: se
+  language: n/a
+  metric: nisqa_loud
+  pipeline_id: se.any.nisqa_loud.nisqa_loud_v1
+  nodes:
+  - id: scoring/nisqa_loud
+    version: v1
+links:
+  docs:
+  - docs/tasks/se.md
+  catalog: docs/pipeline_catalog.jsonl
+  source_change: https://github.com/PigeonDan1/sure-evaluation/commit/204ffe814fa7b0797e8471d80916339d1dfd0690
+  related_changes: []
+  tests: []
+evidence:
+  source_commit: 204ffe814fa7b0797e8471d80916339d1dfd0690
+  source_files:
+  - docs/pipeline_catalog.jsonl
+  - docs/tasks/se.md
+  - src/sure_eval/evaluation/nodes/scoring/dnsmos_bak/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/dnsmos_p808/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/dnsmos_sig/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/estoi/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/lps/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/lsd/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/nisqa_col/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/nisqa_dis/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/nisqa_loud/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/nisqa_mos/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/nisqa_noi/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/nsrmr/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/squim_pesq/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/squim_si_sdr/manifest.yaml
+  - src/sure_eval/evaluation/nodes/scoring/squim_stoi/manifest.yaml
+  - src/sure_eval/evaluation/tasks/se/manifest.yaml
+  - src/sure_eval/evaluation/tasks/se/routes.yaml
+  file_digests:
+    docs/pipeline_catalog.jsonl: 77a6a3d927c7bfe1a8344c762a051c7b569d93e84e1c1e18d6d100e6cf5950d3
+    src/sure_eval/evaluation/tasks/se/manifest.yaml: 4ce50b31e76d54b5b6c759f392542e6f1b53ca00126f9502f44d41312324b261
+    src/sure_eval/evaluation/tasks/se/routes.yaml: a81649b058953a0ed094b5544a3178bd45ee551042ae42a98007dd20dcd43315
+    src/sure_eval/evaluation/nodes/scoring/estoi/manifest.yaml: 004661695d95a11d7f0b5a7f4a65507dbe6322bda5b0a4615437ec8021821a18
+    docs/tasks/se.md: 2416291edadc061163cbd2636970c260069142bce5a4c34f005da9e8067bc3a8
+    src/sure_eval/evaluation/nodes/scoring/lsd/manifest.yaml: 950be23cfc2e4603edc2b4594972b7f35169b0cf239e9f190105a50617ce95dc
+    src/sure_eval/evaluation/nodes/scoring/lps/manifest.yaml: bb1b9ee74c20d63965acf02282214775d7a391d129d003acfcd2197c74b96c5e
+    src/sure_eval/evaluation/nodes/scoring/dnsmos_p808/manifest.yaml: 0d2d2465ba355db70c0c5bce8b0749e11602b54f5acc48da11d05aeb84b14661
+    src/sure_eval/evaluation/nodes/scoring/dnsmos_sig/manifest.yaml: cf71e4a12e044fd85ffa521869926f5350537957ff21048a5089437edca09098
+    src/sure_eval/evaluation/nodes/scoring/dnsmos_bak/manifest.yaml: 2392a0bf87a5e931b1d099cec9ee6b8e112e0386d91342b8871fab98bfc6e364
+    src/sure_eval/evaluation/nodes/scoring/nsrmr/manifest.yaml: 95161dbc850b6960ff61366ae690c7a7159923d3f576102ebf97899e09d31c02
+    src/sure_eval/evaluation/nodes/scoring/squim_stoi/manifest.yaml: 704488bdd022b1d3cb883a97d6675b961dbea18507ad3ffa3ec4f983b2f5fe1c
+    src/sure_eval/evaluation/nodes/scoring/squim_pesq/manifest.yaml: ded45ee5c9ec561d205bb165234f24cf4a39346eb0c049b5770d1119dbc474bf
+    src/sure_eval/evaluation/nodes/scoring/squim_si_sdr/manifest.yaml: 7a5a76025870e5df787ff8a2d4343dbf281bbeda1ac3cd6ee7b97025a29846ac
+    src/sure_eval/evaluation/nodes/scoring/nisqa_mos/manifest.yaml: 20b9a40b81e0a60989d6b42ee666df279694b6df3c2fe193fc9406d5daba0c52
+    src/sure_eval/evaluation/nodes/scoring/nisqa_noi/manifest.yaml: d8ad65613932b8acbf71b27cb0844a3b605d8c0817cdd84730e1978e4385a200
+    src/sure_eval/evaluation/nodes/scoring/nisqa_dis/manifest.yaml: 1100a795ef2d32b39fe19b07f43674e7d5bd73c389bb160bccd6145460999a7d
+    src/sure_eval/evaluation/nodes/scoring/nisqa_col/manifest.yaml: 4f7582525d13de905e5b0943153140a3c87e1c59b7e739511d1fb5984491fa10
+    src/sure_eval/evaluation/nodes/scoring/nisqa_loud/manifest.yaml: 14f62dc81a2fef061b149515160b6dda7cd31713cf2769554357982d1cfadc6a
+  model: k3.1-pro
+  prompt_version: news_v1
+  copy_origin: manual
+  test_result: Not run by news-agent; see source tests and commit checks.
