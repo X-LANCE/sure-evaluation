@@ -14,7 +14,7 @@ from .detector import feature_changes
 from .evidence import catalog, digest, extract
 from .git import CATALOG, Snapshot, git
 from .kimi_client import KimiClient
-from .publisher import local_write, validate_output
+from .publisher import local_write, preview, validate_output
 from .renderer import render
 from .state import State, locked
 
@@ -68,7 +68,7 @@ def candidates(base, head, entries):
         yield facts, entry
 
 
-def publish_batch(config, head, entries, new, source_repository, target_repository):
+def build_output(config, head, entries, new, source_repository, target_repository):
     output = render(entries + new, head.read("README.md"), source_root=head.root,
                     site_repository=config.site_repository or target_repository, pages_url=config.site_url)
     for entry in new:
@@ -76,6 +76,11 @@ def publish_batch(config, head, entries, new, source_repository, target_reposito
         output[f"docs/news/entries/{entry.id}.yaml"] = dump_entry(entry)
     before = {p: head.read(p) for p in output if head.exists(p)}
     validate_output(before, output, head.exists, pages_url=config.site_url)
+    return before, output
+
+
+def publish_batch(config, head, entries, new, source_repository, target_repository):
+    before, output = build_output(config, head, entries, new, source_repository, target_repository)
     with tempfile.TemporaryDirectory(dir=config.state_dir) as directory:
         work = Path(directory) / "publication"
         git(config.checkout, "worktree", "add", "--detach", str(work), head.sha)
@@ -158,8 +163,19 @@ def poll(config):
                 entry.supersedes, entry.revision = prior.id, prior.revision + 1
             new.append(entry)
         commit = None
+        preview_path = None
         if new and config.poll_mode == "direct":
             commit = publish_batch(config, target, entries, new, source_repository, target_repository)
-        state.advance(scope, source.sha)
+            state.advance(scope, source.sha)
+        elif new:
+            before, output = build_output(config, target, entries, new,
+                                          source_repository, target_repository)
+            preview_path = str(preview(config.state_dir / "poll-previews" / source.sha,
+                                       before, output))
+        else:
+            # Incidental changes or a deliberate empty Kimi selection are safe
+            # to acknowledge. Selected dry-run candidates remain retryable.
+            state.advance(scope, source.sha)
         return {"model": MODEL, "source": source.sha, "target": f"{target_repository}:{target_branch}",
-                "candidates": len(changes), "published": chosen, "commit": commit}
+                "candidates": len(changes), "published": chosen if commit else [],
+                "selected": chosen, "commit": commit, "preview": preview_path}

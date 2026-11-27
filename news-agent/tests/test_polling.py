@@ -1,4 +1,5 @@
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -60,6 +61,39 @@ def test_polling_poll_add_revise_retry_and_deduplicate(repository, tmp_path, cop
     assert polling.poll(config)["candidates"] == 0
     assert polling.poll(config)["published"] == []
     assert Snapshot(target, "main").sha == second["commit"]
+
+
+def test_polling_dry_run_previews_and_keeps_selected_range_retryable(repository, tmp_path, copy, monkeypatch):
+    root, base, config = repository
+    source = tmp_path / "upstream.git"
+    target = tmp_path / "target.git"
+    git(root, "clone", "--bare", str(root), str(source))
+    git(root, "clone", "--bare", str(root), str(target))
+    config.source_repository = "source/example"
+    config.target_repository = "target/example"
+    config.poll_mode = "dry-run"
+    git(root, "config", f"url.{source}.insteadOf", "https://github.com/source/example.git")
+    git(root, "config", f"url.{target}.insteadOf", "https://github.com/target/example.git")
+    scope = "source/example:main->target/example:main"
+    state = State(config.state_dir)
+    state.advance(scope, base)
+    state.close()
+
+    def respond(self, payload):
+        if "candidates" in payload:
+            return {"publish": [item["id"] for item in payload["candidates"]]}
+        en = dict(copy.model_dump(), brief="SD and SA-ASR scoring")
+        return {"en": en, "zh": dict(en, title="评分支持")}
+
+    monkeypatch.setattr(polling.KimiClient, "request", respond)
+    result = polling.poll(config)
+    assert result["selected"] and result["published"] == []
+    assert result["commit"] is None and result["preview"]
+    assert Path(result["preview"]).is_dir()
+    state = State(config.state_dir)
+    assert state.cursor(scope) == base
+    state.close()
+    assert Snapshot(target, "main").sha == Snapshot(source, "main").sha
 
 
 @pytest.mark.parametrize("path", ["NEWS.md", "docs/news/deploy.yaml", "news-agent/src/news_agent/web.py"])
